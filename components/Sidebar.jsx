@@ -1,5 +1,7 @@
 "use client";
 
+import { useAuth } from "@/context/AuthContext";
+
 import {
   LayoutDashboard,
   GraduationCap,
@@ -34,6 +36,8 @@ export default function Sidebar({
   collapsed,
   onToggleCollapse,
 }) {
+  const { logout } = useAuth();
+
   return (
     <>
       {/* Mobile overlay */}
@@ -154,6 +158,7 @@ export default function Sidebar({
           </button>
           <button
             title={collapsed ? "Logout" : undefined}
+            onClick={logout}
             className={`
               w-full flex items-center gap-3 rounded-xl
               text-gray-400 hover:text-danger hover:bg-danger/10
