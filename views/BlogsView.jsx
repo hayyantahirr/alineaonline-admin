@@ -155,7 +155,7 @@ export default function BlogsView() {
       render: (row) => (
         <div className="flex items-center gap-2">
           <Calendar className="w-3.5 h-3.5 text-gray-400" />
-          <span className="text-sm font-[family-name:var(--font-ibm-plex-mono)]">
+          <span className="text-sm font-(family-name:--font-ibm-plex-mono)">
             {row.publishDate || "—"}
           </span>
         </div>
@@ -231,10 +231,10 @@ export default function BlogsView() {
               <Eye className="w-5 h-5 text-success" />
             </div>
             <div>
-              <p className="text-2xl font-[family-name:var(--font-archivo-black)] text-dark">
+              <p className="text-2xl font-(family-name:--font-archivo-black) text-dark">
                 {blogs.filter((b) => b.status === "Published").length}
               </p>
-              <p className="text-xs text-gray-400 font-[family-name:var(--font-ibm-plex-mono)]">
+              <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono)">
                 PUBLISHED
               </p>
             </div>
@@ -246,10 +246,10 @@ export default function BlogsView() {
               <Edit className="w-5 h-5 text-gray-500" />
             </div>
             <div>
-              <p className="text-2xl font-[family-name:var(--font-archivo-black)] text-dark">
+              <p className="text-2xl font-(family-name:--font-archivo-black) text-dark">
                 {blogs.filter((b) => b.status === "Draft").length}
               </p>
-              <p className="text-xs text-gray-400 font-[family-name:var(--font-ibm-plex-mono)]">
+              <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono)">
                 DRAFTS
               </p>
             </div>

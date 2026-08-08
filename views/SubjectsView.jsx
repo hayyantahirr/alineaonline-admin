@@ -71,7 +71,7 @@ export default function SubjectsView() {
           </div>
           <div>
             <p className="text-sm text-gray-500">Total Subjects</p>
-            <p className="text-2xl font-[family-name:var(--font-archivo-black)] text-dark">
+            <p className="text-2xl font-(family-name:--font-archivo-black) text-dark">
               {subjects.length}
             </p>
           </div>
@@ -85,7 +85,7 @@ export default function SubjectsView() {
       {Object.entries(grouped).map(([level, levelSubjects]) => (
         <div key={level}>
           <div className="flex items-center gap-3 mb-3">
-            <h3 className="text-base font-[family-name:var(--font-archivo-black)] text-dark">
+            <h3 className="text-base font-(family-name:--font-archivo-black) text-dark">
               {level}
             </h3>
             <Badge variant={levelVariant[level]}>

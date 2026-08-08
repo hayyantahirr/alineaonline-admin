@@ -54,10 +54,10 @@ export default function ContactMessagesView() {
               <Mail className="w-5 h-5 text-info" />
             </div>
             <div>
-              <p className="text-2xl font-[family-name:var(--font-archivo-black)] text-dark">
+              <p className="text-2xl font-(family-name:--font-archivo-black) text-dark">
                 {messages.length}
               </p>
-              <p className="text-xs text-gray-400 font-[family-name:var(--font-ibm-plex-mono)]">
+              <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono)">
                 TOTAL MESSAGES
               </p>
             </div>
@@ -69,10 +69,10 @@ export default function ContactMessagesView() {
               <Mail className="w-5 h-5 text-warning" />
             </div>
             <div>
-              <p className="text-2xl font-[family-name:var(--font-archivo-black)] text-dark">
+              <p className="text-2xl font-(family-name:--font-archivo-black) text-dark">
                 {unreadCount}
               </p>
-              <p className="text-xs text-gray-400 font-[family-name:var(--font-ibm-plex-mono)]">
+              <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono)">
                 UNREAD
               </p>
             </div>
@@ -84,10 +84,10 @@ export default function ContactMessagesView() {
               <MailOpen className="w-5 h-5 text-success" />
             </div>
             <div>
-              <p className="text-2xl font-[family-name:var(--font-archivo-black)] text-dark">
+              <p className="text-2xl font-(family-name:--font-archivo-black) text-dark">
                 {messages.length - unreadCount}
               </p>
-              <p className="text-xs text-gray-400 font-[family-name:var(--font-ibm-plex-mono)]">
+              <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono)">
                 READ
               </p>
             </div>
@@ -152,7 +152,7 @@ export default function ContactMessagesView() {
                   >
                     {msg.name}
                   </p>
-                  <span className="text-xs text-gray-400 shrink-0 font-[family-name:var(--font-ibm-plex-mono)]">
+                  <span className="text-xs text-gray-400 shrink-0 font-(family-name:--font-ibm-plex-mono)">
                     {msg.date}
                   </span>
                 </div>
@@ -218,7 +218,7 @@ export default function ContactMessagesView() {
             </div>
 
             <div className="pt-4 border-t border-gray-100">
-              <p className="text-xs text-gray-400 font-[family-name:var(--font-ibm-plex-mono)] mb-2">
+              <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono) mb-2">
                 {selectedMessage.date}
               </p>
               <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">

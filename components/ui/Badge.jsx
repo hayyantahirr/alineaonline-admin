@@ -14,7 +14,7 @@ export default function Badge({ children, variant = "default", className = "" })
       className={`
         inline-flex items-center px-2.5 py-0.5 rounded-full
         text-xs font-medium
-        font-[family-name:var(--font-ibm-plex-mono)]
+        font-(family-name:--font-ibm-plex-mono)
         ${variants[variant] || variants.default}
         ${className}
       `}

@@ -63,10 +63,10 @@ export default function Sidebar({
             </div>
             {!collapsed && (
               <div className="animate-fade-in">
-                <h1 className="text-sm font-[family-name:var(--font-archivo-black)] tracking-wide">
+                <h1 className="text-sm font-(family-name:--font-archivo-black) tracking-wide">
                   ALINEA
                 </h1>
-                <p className="text-[10px] text-gray-400 font-[family-name:var(--font-ibm-plex-mono)] -mt-0.5">
+                <p className="text-[10px] text-gray-400 font-(family-name:--font-ibm-plex-mono) -mt-0.5">
                   ADMIN PANEL
                 </p>
               </div>

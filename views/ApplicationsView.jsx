@@ -56,10 +56,10 @@ export default function ApplicationsView() {
               <Clock className="w-5 h-5 text-warning" />
             </div>
             <div>
-              <p className="text-2xl font-[family-name:var(--font-archivo-black)] text-dark">
+              <p className="text-2xl font-(family-name:--font-archivo-black) text-dark">
                 {applications.filter((a) => a.status === "Pending").length}
               </p>
-              <p className="text-xs text-gray-400 font-[family-name:var(--font-ibm-plex-mono)]">
+              <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono)">
                 PENDING REVIEW
               </p>
             </div>
@@ -71,10 +71,10 @@ export default function ApplicationsView() {
               <CheckCircle className="w-5 h-5 text-success" />
             </div>
             <div>
-              <p className="text-2xl font-[family-name:var(--font-archivo-black)] text-dark">
+              <p className="text-2xl font-(family-name:--font-archivo-black) text-dark">
                 {applications.filter((a) => a.status === "Approved").length}
               </p>
-              <p className="text-xs text-gray-400 font-[family-name:var(--font-ibm-plex-mono)]">
+              <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono)">
                 APPROVED
               </p>
             </div>
@@ -86,10 +86,10 @@ export default function ApplicationsView() {
               <XCircle className="w-5 h-5 text-danger" />
             </div>
             <div>
-              <p className="text-2xl font-[family-name:var(--font-archivo-black)] text-dark">
+              <p className="text-2xl font-(family-name:--font-archivo-black) text-dark">
                 {applications.filter((a) => a.status === "Rejected").length}
               </p>
-              <p className="text-xs text-gray-400 font-[family-name:var(--font-ibm-plex-mono)]">
+              <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono)">
                 REJECTED
               </p>
             </div>
@@ -150,7 +150,7 @@ export default function ApplicationsView() {
                   <Briefcase className="w-3.5 h-3.5" />
                   {app.experience}
                 </span>
-                <span className="font-[family-name:var(--font-ibm-plex-mono)]">
+                <span className="font-(family-name:--font-ibm-plex-mono)">
                   {app.subject}
                 </span>
               </div>
@@ -161,7 +161,7 @@ export default function ApplicationsView() {
 
               {/* Footer */}
               <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                <p className="text-xs text-gray-400 font-[family-name:var(--font-ibm-plex-mono)]">
+                <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono)">
                   Applied: {app.appliedDate}
                 </p>
                 <Button size="sm" variant="ghost" icon={Eye} onClick={() => openReview(app)}>
@@ -230,7 +230,7 @@ export default function ApplicationsView() {
 
             <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
               <div>
-                <p className="text-xs text-gray-400 font-[family-name:var(--font-ibm-plex-mono)]">
+                <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono)">
                   SUBJECT
                 </p>
                 <p className="text-sm font-medium text-dark">
@@ -238,7 +238,7 @@ export default function ApplicationsView() {
                 </p>
               </div>
               <div>
-                <p className="text-xs text-gray-400 font-[family-name:var(--font-ibm-plex-mono)]">
+                <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono)">
                   EXPERIENCE
                 </p>
                 <p className="text-sm font-medium text-dark">
@@ -246,7 +246,7 @@ export default function ApplicationsView() {
                 </p>
               </div>
               <div>
-                <p className="text-xs text-gray-400 font-[family-name:var(--font-ibm-plex-mono)]">
+                <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono)">
                   APPLIED DATE
                 </p>
                 <p className="text-sm font-medium text-dark">
@@ -254,7 +254,7 @@ export default function ApplicationsView() {
                 </p>
               </div>
               <div>
-                <p className="text-xs text-gray-400 font-[family-name:var(--font-ibm-plex-mono)]">
+                <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono)">
                   CV / RESUME
                 </p>
                 <a
@@ -267,7 +267,7 @@ export default function ApplicationsView() {
             </div>
 
             <div className="pt-4 border-t border-gray-100">
-              <p className="text-xs text-gray-400 font-[family-name:var(--font-ibm-plex-mono)] mb-2">
+              <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono) mb-2">
                 BIO / COVER LETTER
               </p>
               <p className="text-sm text-gray-600 leading-relaxed">

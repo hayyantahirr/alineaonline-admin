@@ -143,7 +143,7 @@ export default function ResourcesView() {
                 </div>
 
                 {/* Stats */}
-                <div className="flex items-center gap-3 text-xs text-gray-400 font-[family-name:var(--font-ibm-plex-mono)]">
+                <div className="flex items-center gap-3 text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono)">
                   <span className="flex items-center gap-1">
                     <Download className="w-3 h-3" />
                     {resource.downloads}

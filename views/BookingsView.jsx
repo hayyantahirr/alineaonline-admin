@@ -45,7 +45,7 @@ export default function BookingsView() {
       render: (row) => (
         <div>
           <p className="text-sm text-dark font-medium">{row.date}</p>
-          <p className="text-xs text-gray-400 font-[family-name:var(--font-ibm-plex-mono)]">
+          <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono)">
             {row.time} · {row.duration}
           </p>
         </div>
@@ -69,10 +69,10 @@ export default function BookingsView() {
               <CalendarDays className="w-5 h-5 text-info" />
             </div>
             <div>
-              <p className="text-2xl font-[family-name:var(--font-archivo-black)] text-dark">
+              <p className="text-2xl font-(family-name:--font-archivo-black) text-dark">
                 {bookings.filter((b) => b.status === "Upcoming").length}
               </p>
-              <p className="text-xs text-gray-400 font-[family-name:var(--font-ibm-plex-mono)]">
+              <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono)">
                 UPCOMING
               </p>
             </div>
@@ -84,10 +84,10 @@ export default function BookingsView() {
               <CalendarDays className="w-5 h-5 text-success" />
             </div>
             <div>
-              <p className="text-2xl font-[family-name:var(--font-archivo-black)] text-dark">
+              <p className="text-2xl font-(family-name:--font-archivo-black) text-dark">
                 {bookings.filter((b) => b.status === "Completed").length}
               </p>
-              <p className="text-xs text-gray-400 font-[family-name:var(--font-ibm-plex-mono)]">
+              <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono)">
                 COMPLETED
               </p>
             </div>
@@ -99,10 +99,10 @@ export default function BookingsView() {
               <CalendarDays className="w-5 h-5 text-danger" />
             </div>
             <div>
-              <p className="text-2xl font-[family-name:var(--font-archivo-black)] text-dark">
+              <p className="text-2xl font-(family-name:--font-archivo-black) text-dark">
                 {bookings.filter((b) => b.status === "Cancelled").length}
               </p>
-              <p className="text-xs text-gray-400 font-[family-name:var(--font-ibm-plex-mono)]">
+              <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono)">
                 CANCELLED
               </p>
             </div>

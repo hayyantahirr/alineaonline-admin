@@ -95,10 +95,10 @@ export default function DashboardView() {
             <Card key={i} className="animate-slide-up" style={{ animationDelay: `${i * 50}ms` }}>
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-xs font-medium text-gray-400 uppercase tracking-wider font-[family-name:var(--font-ibm-plex-mono)]">
+                  <p className="text-xs font-medium text-gray-400 uppercase tracking-wider font-(family-name:--font-ibm-plex-mono)">
                     {stat.label}
                   </p>
-                  <p className="text-3xl font-[family-name:var(--font-archivo-black)] text-dark mt-2">
+                  <p className="text-3xl font-(family-name:--font-archivo-black) text-dark mt-2">
                     {stat.value}
                   </p>
                   <div className="flex items-center gap-1 mt-2">
@@ -137,10 +137,10 @@ export default function DashboardView() {
                   <Icon className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400 font-[family-name:var(--font-ibm-plex-mono)] uppercase tracking-wider">
+                  <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono) uppercase tracking-wider">
                     {stat.label}
                   </p>
-                  <p className="text-2xl font-[family-name:var(--font-archivo-black)] text-dark">
+                  <p className="text-2xl font-(family-name:--font-archivo-black) text-dark">
                     {stat.value}
                   </p>
                 </div>
@@ -157,10 +157,10 @@ export default function DashboardView() {
           className="lg:col-span-3"
           header={
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-[family-name:var(--font-archivo-black)] text-dark">
+              <h3 className="text-base font-(family-name:--font-archivo-black) text-dark">
                 Recent Activity
               </h3>
-              <span className="text-xs text-gray-400 font-[family-name:var(--font-ibm-plex-mono)]">
+              <span className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono)">
                 Last 7 days
               </span>
             </div>
@@ -181,7 +181,7 @@ export default function DashboardView() {
                     <p className="text-sm text-dark leading-snug">
                       {activity.message}
                     </p>
-                    <p className="text-xs text-gray-400 mt-1 font-[family-name:var(--font-ibm-plex-mono)]">
+                    <p className="text-xs text-gray-400 mt-1 font-(family-name:--font-ibm-plex-mono)">
                       {activity.time}
                     </p>
                   </div>
@@ -196,7 +196,7 @@ export default function DashboardView() {
         <Card
           className="lg:col-span-2"
           header={
-            <h3 className="text-base font-[family-name:var(--font-archivo-black)] text-dark">
+            <h3 className="text-base font-(family-name:--font-archivo-black) text-dark">
               Upcoming Sessions
             </h3>
           }
@@ -216,7 +216,7 @@ export default function DashboardView() {
                 <p className="text-xs text-gray-500">
                   {booking.studentName} → {booking.teacherName}
                 </p>
-                <p className="text-xs text-gray-400 mt-1 font-[family-name:var(--font-ibm-plex-mono)]">
+                <p className="text-xs text-gray-400 mt-1 font-(family-name:--font-ibm-plex-mono)">
                   {booking.date} · {booking.time} · {booking.duration}
                 </p>
               </div>

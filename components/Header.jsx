@@ -30,10 +30,10 @@ export default function Header({ activeView, onMenuToggle }) {
           </button>
 
           <div>
-            <h1 className="text-xl font-[family-name:var(--font-archivo-black)] text-dark">
+            <h1 className="text-xl font-(family-name:--font-archivo-black) text-dark">
               {viewTitles[activeView] || "Dashboard"}
             </h1>
-            <p className="text-xs text-gray-400 font-[family-name:var(--font-ibm-plex-mono)] hidden sm:block">
+            <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono) hidden sm:block">
               {new Date().toLocaleDateString("en-US", {
                 weekday: "long",
                 year: "numeric",

@@ -86,7 +86,7 @@ export default function TeachersView() {
           }`}
         />
       ))}
-      <span className="ml-1.5 text-xs text-gray-500 font-[family-name:var(--font-ibm-plex-mono)]">
+      <span className="ml-1.5 text-xs text-gray-500 font-(family-name:--font-ibm-plex-mono)">
         {rating}
       </span>
     </div>
@@ -117,7 +117,7 @@ export default function TeachersView() {
     {
       header: "Students",
       render: (row) => (
-        <span className="font-[family-name:var(--font-ibm-plex-mono)] text-sm">
+        <span className="font-(family-name:--font-ibm-plex-mono) text-sm">
           {row.students}
         </span>
       ),
@@ -208,10 +208,10 @@ export default function TeachersView() {
               <div className="w-2 h-2 bg-success rounded-full" />
             </div>
             <div>
-              <p className="text-2xl font-[family-name:var(--font-archivo-black)] text-dark">
+              <p className="text-2xl font-(family-name:--font-archivo-black) text-dark">
                 {teachers.filter((t) => t.status === "Active").length}
               </p>
-              <p className="text-xs text-gray-400 font-[family-name:var(--font-ibm-plex-mono)]">
+              <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono)">
                 ACTIVE
               </p>
             </div>
@@ -223,10 +223,10 @@ export default function TeachersView() {
               <div className="w-2 h-2 bg-warning rounded-full" />
             </div>
             <div>
-              <p className="text-2xl font-[family-name:var(--font-archivo-black)] text-dark">
+              <p className="text-2xl font-(family-name:--font-archivo-black) text-dark">
                 {teachers.filter((t) => t.status === "On Leave").length}
               </p>
-              <p className="text-xs text-gray-400 font-[family-name:var(--font-ibm-plex-mono)]">
+              <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono)">
                 ON LEAVE
               </p>
             </div>
@@ -238,10 +238,10 @@ export default function TeachersView() {
               <Star className="w-4 h-4 text-info" />
             </div>
             <div>
-              <p className="text-2xl font-[family-name:var(--font-archivo-black)] text-dark">
+              <p className="text-2xl font-(family-name:--font-archivo-black) text-dark">
                 {(teachers.reduce((sum, t) => sum + t.rating, 0) / teachers.length).toFixed(1)}
               </p>
-              <p className="text-xs text-gray-400 font-[family-name:var(--font-ibm-plex-mono)]">
+              <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono)">
                 AVG RATING
               </p>
             </div>
@@ -312,7 +312,7 @@ export default function TeachersView() {
             </div>
             <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
               <div>
-                <p className="text-xs text-gray-400 font-[family-name:var(--font-ibm-plex-mono)]">
+                <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono)">
                   SUBJECT
                 </p>
                 <p className="text-sm font-medium text-dark">
@@ -320,13 +320,13 @@ export default function TeachersView() {
                 </p>
               </div>
               <div>
-                <p className="text-xs text-gray-400 font-[family-name:var(--font-ibm-plex-mono)]">
+                <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono)">
                   RATING
                 </p>
                 {renderStars(selectedTeacher.rating)}
               </div>
               <div>
-                <p className="text-xs text-gray-400 font-[family-name:var(--font-ibm-plex-mono)]">
+                <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono)">
                   STUDENTS
                 </p>
                 <p className="text-sm font-medium text-dark">
@@ -334,7 +334,7 @@ export default function TeachersView() {
                 </p>
               </div>
               <div>
-                <p className="text-xs text-gray-400 font-[family-name:var(--font-ibm-plex-mono)]">
+                <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono)">
                   JOINED
                 </p>
                 <p className="text-sm font-medium text-dark">
@@ -342,7 +342,7 @@ export default function TeachersView() {
                 </p>
               </div>
               <div>
-                <p className="text-xs text-gray-400 font-[family-name:var(--font-ibm-plex-mono)]">
+                <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono)">
                   STATUS
                 </p>
                 <Badge
