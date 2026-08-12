@@ -88,6 +88,7 @@ export default function ApplicationsView() {
             data.resume ||
             data.fileUrl ||
             "";
+          const cvType = data.cvType || "pdf";
 
           // Helpers to format arrays/objects safely
           const formatArray = (val) => {
@@ -103,6 +104,7 @@ export default function ApplicationsView() {
             status,
             formattedDate,
             cvUrl,
+            cvType,
             email: data.email || "",
             phone: data.phone || "",
             country: data.country || "",
@@ -185,6 +187,26 @@ export default function ApplicationsView() {
     const parts = nameStr.trim().split(" ");
     if (parts.length === 1) return parts[0][0].toUpperCase();
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
+
+  const handleDownloadCV = async (e, cvUrl, name, cvType) => {
+    e.preventDefault();
+    try {
+      const response = await fetch(cvUrl);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = `${name.replace(/\s+/g, "_")}_CV.${cvType}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error("Error downloading CV:", err);
+      // Fallback: open in new tab
+      window.open(cvUrl, "_blank");
+    }
   };
 
   return (
@@ -325,10 +347,9 @@ export default function ApplicationsView() {
                   {app.cvUrl && (
                     <a
                       href={app.cvUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-xs font-medium text-deep-blue hover:text-primary p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
-                      title="Download / View CV"
+                      onClick={(e) => handleDownloadCV(e, app.cvUrl, app.name, app.cvType)}
+                      className="inline-flex items-center gap-1 text-xs font-medium text-deep-blue hover:text-primary p-1.5 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                      title="Download CV"
                     >
                       <FileText className="w-3.5 h-3.5" />
                       CV
@@ -494,9 +515,8 @@ export default function ApplicationsView() {
               {selectedApp.cvUrl ? (
                 <a
                   href={selectedApp.cvUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm font-medium text-deep-blue hover:text-primary transition-colors underline"
+                  onClick={(e) => handleDownloadCV(e, selectedApp.cvUrl, selectedApp.name, selectedApp.cvType)}
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-deep-blue hover:text-primary transition-colors underline cursor-pointer"
                 >
                   <Download className="w-4 h-4" />
                   Download / View CV
