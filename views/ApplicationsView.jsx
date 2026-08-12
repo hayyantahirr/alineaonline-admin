@@ -347,7 +347,9 @@ export default function ApplicationsView() {
                   {app.cvUrl && (
                     <a
                       href={app.cvUrl}
-                      onClick={(e) => handleDownloadCV(e, app.cvUrl, app.name, app.cvType)}
+                      onClick={(e) =>
+                        handleDownloadCV(e, app.cvUrl, app.name, app.cvType)
+                      }
                       className="inline-flex items-center gap-1 text-xs font-medium text-deep-blue hover:text-primary p-1.5 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
                       title="Download CV"
                     >
@@ -515,7 +517,14 @@ export default function ApplicationsView() {
               {selectedApp.cvUrl ? (
                 <a
                   href={selectedApp.cvUrl}
-                  onClick={(e) => handleDownloadCV(e, selectedApp.cvUrl, selectedApp.name, selectedApp.cvType)}
+                  onClick={(e) =>
+                    handleDownloadCV(
+                      e,
+                      selectedApp.cvUrl,
+                      selectedApp.name,
+                      selectedApp.cvType,
+                    )
+                  }
                   className="inline-flex items-center gap-1.5 text-sm font-medium text-deep-blue hover:text-primary transition-colors underline cursor-pointer"
                 >
                   <Download className="w-4 h-4" />

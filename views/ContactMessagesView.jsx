@@ -67,10 +67,7 @@ export default function ContactMessagesView() {
           const isRead = data.status === "read" || data.read === true;
           const formattedDate = helperFormatDate(data.date, data.createdAt);
           const displayName =
-            data.name ||
-            data.studentName ||
-            data.parentName ||
-            "Anonymous";
+            data.name || data.studentName || data.parentName || "Anonymous";
 
           return {
             id: docSnap.id,
@@ -102,7 +99,7 @@ export default function ContactMessagesView() {
       },
       (error) => {
         console.error("Firestore onSnapshot error:", error);
-      }
+      },
     );
 
     return () => unsubscribe();
@@ -112,8 +109,8 @@ export default function ContactMessagesView() {
     filter === "All"
       ? messages
       : filter === "Unread"
-      ? messages.filter((m) => !m.isRead)
-      : messages.filter((m) => m.isRead);
+        ? messages.filter((m) => !m.isRead)
+        : messages.filter((m) => m.isRead);
 
   const unreadCount = messages.filter((m) => !m.isRead).length;
 
@@ -319,9 +316,9 @@ export default function ContactMessagesView() {
                     window.open(
                       `https://wa.me/${selectedMessage.phone.replace(
                         /[^0-9]/g,
-                        ""
+                        "",
                       )}`,
-                      "_blank"
+                      "_blank",
                     )
                   }
                 >
