@@ -10,7 +10,7 @@ export default function Table({ columns, data, onRowClick }) {
               <th
                 key={i}
                 className={`
-                  px-4 py-3 text-left font-semibold
+                  px-4 py-3 text-left font-semibold whitespace-nowrap
                   font-(family-name:--font-ibm-plex-mono) text-xs uppercase tracking-wider
                   ${i === 0 ? "rounded-tl-xl" : ""}
                   ${i === columns.length - 1 ? "rounded-tr-xl" : ""}
