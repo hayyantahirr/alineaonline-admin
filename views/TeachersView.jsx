@@ -9,9 +9,11 @@ import {
   Trash2,
   Loader2,
   X,
-  UserPlus,
   Users,
   AlertCircle,
+  Check,
+  Upload,
+  Image as ImageIcon,
 } from "lucide-react";
 import {
   collection,
@@ -29,6 +31,66 @@ import Modal from "@/components/ui/Modal";
 import Table from "@/components/ui/Table";
 import { Input, Textarea, Select } from "@/components/ui/Input";
 
+// ─── preset options ─────────────────────────────────────────────
+const SUBJECTS = [
+  "Economics",
+  "Mathematics",
+  "Physics",
+  "Chemistry",
+  "Biology",
+  "English Literature",
+  "English Language",
+  "Computer Science",
+  "History",
+  "Geography",
+  "Accounting",
+  "Business Studies",
+  "Psychology",
+  "Sociology",
+  "French",
+  "Spanish",
+  "Urdu",
+  "Islamiyat",
+  "Pakistan Studies",
+];
+
+const LEVELS = ["IGCSE", "O-Level", "AS-Level", "A-Level"];
+
+const BOARDS = ["CAIE", "Edexcel", "AQA", "OCR", "WJEC", "IB"];
+
+const EXPERIENCE_OPTIONS = [
+  "1-2 Years",
+  "3-5 Years",
+  "6+ Years",
+  "10+ Years",
+  "15+ Years",
+];
+
+const QUALIFICATIONS = [
+  "BSc",
+  "BA",
+  "MSc",
+  "MA",
+  "MBA",
+  "PhD",
+  "PGCE",
+  "Examiner Trained",
+  "CIE Trained",
+  "ACCA",
+  "CFA",
+];
+
+// role tag templates — {subject} gets replaced
+const ROLE_TEMPLATES = [
+  "Senior {subject} Specialist",
+  "{subject} Specialist",
+  "Head of {subject}",
+  "Lead {subject} Tutor",
+  "{subject} Instructor",
+  "Senior {subject} Tutor",
+  "{subject} Faculty",
+];
+
 // ─── helpers ────────────────────────────────────────────────────
 function slugify(text) {
   return text
@@ -38,17 +100,62 @@ function slugify(text) {
     .replace(/^-|-$/g, "");
 }
 
+function getRoleOptions(subject) {
+  const subj = subject || "Subject";
+  return ROLE_TEMPLATES.map((t) => t.replace("{subject}", subj));
+}
+
+// ─── ChipSelect component ──────────────────────────────────────
+function ChipSelect({ label, options, selected = [], onChange }) {
+  const toggle = (val) => {
+    if (selected.includes(val)) {
+      onChange(selected.filter((s) => s !== val));
+    } else {
+      onChange([...selected, val]);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      {label && <label className="text-sm font-medium text-dark">{label}</label>}
+      <div className="flex flex-wrap gap-2">
+        {options.map((opt) => {
+          const isSelected = selected.includes(opt);
+          return (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => toggle(opt)}
+              className={`
+                inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium
+                border transition-all duration-200 cursor-pointer
+                ${
+                  isSelected
+                    ? "bg-primary text-dark border-primary shadow-sm"
+                    : "bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-dark"
+                }
+              `}
+            >
+              {isSelected && <Check className="w-3.5 h-3.5" />}
+              {opt}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── default form state ─────────────────────────────────────────
 const emptyForm = {
   name: "",
   role: "",
   image: "",
   subject: "",
-  subjectBookingParam: "",
-  levels: "",
-  boards: "",
+  levels: [],
+  boards: [],
   experience: "",
-  qualification: "",
-  availability: "Accepting New Students",
+  qualifications: [],
   availabilityStatus: "available",
   bio: "",
   highlights: [""],
@@ -60,7 +167,6 @@ export default function TeachersView() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // modal state
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
@@ -69,6 +175,11 @@ export default function TeachersView() {
   const [saving, setSaving] = useState(false);
 
   const [formData, setFormData] = useState({ ...emptyForm });
+
+  // Cloudinary image upload states
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageError, setImageError] = useState("");
+  const [showUrlInput, setShowUrlInput] = useState(false);
 
   // ── Firestore realtime listener ──
   useEffect(() => {
@@ -109,17 +220,49 @@ export default function TeachersView() {
       highlights: prev.highlights.map((h, i) => (i === idx ? value : h)),
     }));
 
-  // ── build doc from form ──
-  const buildDoc = () => {
-    const boards =
-      typeof formData.boards === "string"
-        ? formData.boards
-            .split(",")
-            .map((b) => b.trim())
-            .filter(Boolean)
-        : formData.boards;
+  // ── image upload handler ──
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
+    setUploadingImage(true);
+    setImageError("");
+
+    const data = new FormData();
+    data.append("file", file);
+
+    try {
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: data,
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Failed to upload image");
+      }
+
+      const resData = await res.json();
+      updateField("image", resData.url);
+    } catch (err) {
+      console.error("Cloudinary upload error:", err);
+      setImageError(err.message || "Failed to upload image");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  // ── build Firestore doc from form ──
+  const buildDoc = () => {
     const highlights = formData.highlights.filter((h) => h.trim() !== "");
+
+    // auto-derive fields
+    const levelsStr = formData.levels.join(" & ");
+    const qualStr = formData.qualifications.join(" & ");
+    const availabilityText =
+      formData.availabilityStatus === "available"
+        ? "Accepting New Students"
+        : "Limited Availability";
 
     return {
       id: slugify(formData.name),
@@ -127,12 +270,12 @@ export default function TeachersView() {
       role: formData.role,
       image: formData.image,
       subject: formData.subject,
-      subjectBookingParam: formData.subjectBookingParam || formData.subject,
-      levels: formData.levels,
-      boards,
+      subjectBookingParam: formData.subject,
+      levels: levelsStr,
+      boards: formData.boards,
       experience: formData.experience,
-      qualification: formData.qualification,
-      availability: formData.availability,
+      qualification: qualStr,
+      availability: availabilityText,
       availabilityStatus: formData.availabilityStatus,
       bio: formData.bio,
       highlights,
@@ -158,7 +301,6 @@ export default function TeachersView() {
     setSaving(true);
     try {
       const data = buildDoc();
-      // if name changed the slug changes — delete old doc, create new
       if (data.id !== selectedTeacher._docId) {
         await deleteDoc(doc(db, "teachers", selectedTeacher._docId));
         await setDoc(doc(db, "teachers", data.id), data);
@@ -188,25 +330,45 @@ export default function TeachersView() {
 
   // ── open modals ──
   const openAdd = () => {
-    setFormData({ ...emptyForm });
+    setFormData({ ...emptyForm, highlights: [""] });
+    setImageError("");
+    setShowUrlInput(false);
     setShowAddModal(true);
   };
 
   const openEdit = (teacher) => {
     setSelectedTeacher(teacher);
+    setImageError("");
+    // If the image is not empty, show the preview. If it looks like a manual URL, we could show the URL input but defaulting to uploader (which also shows preview) is cleaner.
+    setShowUrlInput(false);
+
+    // parse levels string back to array (e.g. "IGCSE & A-Level" → ["IGCSE", "A-Level"])
+    const levelsArr =
+      typeof teacher.levels === "string"
+        ? teacher.levels
+            .split("&")
+            .map((l) => l.trim())
+            .filter(Boolean)
+        : teacher.levels || [];
+
+    // parse qualification string back to array
+    const qualArr =
+      typeof teacher.qualification === "string"
+        ? teacher.qualification
+            .split("&")
+            .map((q) => q.trim())
+            .filter(Boolean)
+        : [];
+
     setFormData({
       name: teacher.name || "",
       role: teacher.role || "",
       image: teacher.image || "",
       subject: teacher.subject || "",
-      subjectBookingParam: teacher.subjectBookingParam || "",
-      levels: teacher.levels || "",
-      boards: Array.isArray(teacher.boards)
-        ? teacher.boards.join(", ")
-        : teacher.boards || "",
+      levels: levelsArr,
+      boards: Array.isArray(teacher.boards) ? teacher.boards : [],
       experience: teacher.experience || "",
-      qualification: teacher.qualification || "",
-      availability: teacher.availability || "Accepting New Students",
+      qualifications: qualArr,
       availabilityStatus: teacher.availabilityStatus || "available",
       bio: teacher.bio || "",
       highlights:
@@ -249,7 +411,7 @@ export default function TeachersView() {
           </div>
           <div>
             <p className="font-semibold text-dark text-sm">{row.name}</p>
-            <p className="text-xs text-gray-400 truncate max-w-[180px]">
+            <p className="text-xs text-gray-400 truncate max-w-45">
               {row.role}
             </p>
           </div>
@@ -321,137 +483,250 @@ export default function TeachersView() {
     },
   ];
 
+  // ── role options based on selected subject ──
+  const roleOptions = getRoleOptions(formData.subject);
+
   // ── form fields (shared between add & edit) ──
   const renderForm = () => (
-    <div className="space-y-4">
-      {/* row 1 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Input
-          label="Full Name"
-          placeholder="e.g. Khawar Ahmed"
-          value={formData.name}
-          onChange={(e) => updateField("name", e.target.value)}
-        />
-        <Input
-          label="Role"
-          placeholder="e.g. Senior Economics Specialist"
-          value={formData.role}
-          onChange={(e) => updateField("role", e.target.value)}
-        />
-      </div>
-
-      {/* row 2 */}
-      <Input
-        label="Image URL"
-        placeholder="e.g. /stitch/founder.jpg"
-        value={formData.image}
-        onChange={(e) => updateField("image", e.target.value)}
-      />
-
-      {/* row 3 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Input
-          label="Subject"
-          placeholder="e.g. Economics"
-          value={formData.subject}
-          onChange={(e) => updateField("subject", e.target.value)}
-        />
-        <Input
-          label="Subject Booking Param"
-          placeholder="e.g. Economics (used in booking URL)"
-          value={formData.subjectBookingParam}
-          onChange={(e) => updateField("subjectBookingParam", e.target.value)}
-        />
-      </div>
-
-      {/* row 4 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Input
-          label="Levels"
-          placeholder="e.g. IGCSE & A-Level"
-          value={formData.levels}
-          onChange={(e) => updateField("levels", e.target.value)}
-        />
-        <Input
-          label="Boards (comma-separated)"
-          placeholder="e.g. Edexcel, AQA, CAIE"
-          value={formData.boards}
-          onChange={(e) => updateField("boards", e.target.value)}
-        />
-      </div>
-
-      {/* row 5 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Input
-          label="Experience"
-          placeholder="e.g. 6+ Years"
-          value={formData.experience}
-          onChange={(e) => updateField("experience", e.target.value)}
-        />
-        <Input
-          label="Qualification"
-          placeholder="e.g. BSc Economics & Examiner Trained"
-          value={formData.qualification}
-          onChange={(e) => updateField("qualification", e.target.value)}
-        />
-      </div>
-
-      {/* row 6 — availability */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Input
-          label="Availability Text"
-          placeholder="e.g. Accepting New Students"
-          value={formData.availability}
-          onChange={(e) => updateField("availability", e.target.value)}
-        />
-        <Select
-          label="Availability Status"
-          value={formData.availabilityStatus}
-          onChange={(e) => updateField("availabilityStatus", e.target.value)}
-          options={[
-            { value: "available", label: "Available" },
-            { value: "limited", label: "Limited" },
-          ]}
-        />
-      </div>
-
-      {/* bio */}
-      <Textarea
-        label="Bio"
-        placeholder="Write a brief bio for this teacher…"
-        value={formData.bio}
-        onChange={(e) => updateField("bio", e.target.value)}
-      />
-
-      {/* highlights */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-dark">Highlights</label>
-        {formData.highlights.map((h, idx) => (
-          <div key={idx} className="flex items-center gap-2">
-            <input
-              className="flex-1 px-4 py-2.5 rounded-lg border border-gray-200 text-sm text-dark placeholder:text-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
-              placeholder={`Highlight ${idx + 1}`}
-              value={h}
-              onChange={(e) => updateHighlight(idx, e.target.value)}
+    <div className="space-y-6">
+      {/* ── Section: Basic Info ── */}
+      <div>
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider font-(family-name:--font-ibm-plex-mono) mb-3">
+          Basic Info
+        </p>
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input
+              label="Full Name"
+              placeholder="e.g. Khawar Ahmed"
+              value={formData.name}
+              onChange={(e) => updateField("name", e.target.value)}
             />
-            {formData.highlights.length > 1 && (
-              <button
-                type="button"
-                onClick={() => removeHighlight(idx)}
-                className="p-2 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4 text-red-400" />
-              </button>
-            )}
+            <div className="flex flex-col gap-1.5 justify-end">
+              <div className="flex justify-between items-center">
+                <label className="text-sm font-medium text-dark">Teacher Photo</label>
+                <button
+                  type="button"
+                  onClick={() => setShowUrlInput(!showUrlInput)}
+                  className="text-xs text-primary hover:underline cursor-pointer"
+                >
+                  {showUrlInput ? "Use File Uploader" : "Or enter URL manually"}
+                </button>
+              </div>
+
+              {showUrlInput ? (
+                <Input
+                  placeholder="e.g. /stitch/founder.jpg"
+                  value={formData.image}
+                  onChange={(e) => updateField("image", e.target.value)}
+                />
+              ) : formData.image ? (
+                <div className="flex items-center gap-3 h-[46px]">
+                  <div className="relative group w-11 h-11 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center">
+                    <img
+                      src={formData.image}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => updateField("image", "")}
+                    className="text-xs text-red-500 font-medium hover:underline cursor-pointer"
+                  >
+                    Delete Photo
+                  </button>
+                </div>
+              ) : (
+                <label className={`
+                  h-[46px] border border-dashed border-gray-300 rounded-lg
+                  flex items-center justify-center gap-2 cursor-pointer
+                  hover:border-primary hover:bg-primary/5 transition-all duration-200
+                  ${uploadingImage ? "pointer-events-none opacity-60" : ""}
+                `}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                  {uploadingImage ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                      <span className="text-xs text-gray-500 font-medium">Uploading to Cloudinary...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 text-gray-400" />
+                      <span className="text-xs text-gray-500 font-medium">Upload Image file</span>
+                    </>
+                  )}
+                </label>
+              )}
+              {imageError && (
+                <span className="text-xs text-red-500 font-medium">{imageError}</span>
+              )}
+            </div>
           </div>
-        ))}
-        <button
-          type="button"
-          onClick={addHighlight}
-          className="text-sm text-primary font-medium hover:underline cursor-pointer mt-1"
-        >
-          + Add Highlight
-        </button>
+        </div>
+      </div>
+
+      {/* ── Section: Subject & Teaching ── */}
+      <div>
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider font-(family-name:--font-ibm-plex-mono) mb-3">
+          Subject & Teaching
+        </p>
+        <div className="space-y-4">
+          {/* Subject dropdown */}
+          <Select
+            label="Subject"
+            value={formData.subject}
+            onChange={(e) => {
+              updateField("subject", e.target.value);
+              // reset role when subject changes so they pick a new relevant one
+              updateField("role", "");
+            }}
+            options={[
+              { value: "", label: "Select a subject…" },
+              ...SUBJECTS.map((s) => ({ value: s, label: s })),
+            ]}
+          />
+
+          {/* Role/Tag dropdown — options depend on subject */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-dark">
+              Role / Tag
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {roleOptions.map((role) => (
+                <button
+                  key={role}
+                  type="button"
+                  onClick={() => updateField("role", role)}
+                  className={`
+                    px-3 py-1.5 rounded-lg text-sm font-medium border transition-all duration-200 cursor-pointer
+                    ${
+                      formData.role === role
+                        ? "bg-dark text-white border-dark"
+                        : "bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-dark"
+                    }
+                  `}
+                >
+                  {role}
+                </button>
+              ))}
+            </div>
+            {/* custom role override */}
+            <input
+              className="mt-2 w-full px-4 py-2 rounded-lg border border-gray-200 text-sm text-dark placeholder:text-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+              placeholder="Or type a custom role…"
+              value={
+                roleOptions.includes(formData.role) ? "" : formData.role
+              }
+              onChange={(e) => updateField("role", e.target.value)}
+            />
+          </div>
+
+          {/* Levels — chip multi-select */}
+          <ChipSelect
+            label="Levels"
+            options={LEVELS}
+            selected={formData.levels}
+            onChange={(val) => updateField("levels", val)}
+          />
+
+          {/* Boards — chip multi-select */}
+          <ChipSelect
+            label="Exam Boards"
+            options={BOARDS}
+            selected={formData.boards}
+            onChange={(val) => updateField("boards", val)}
+          />
+        </div>
+      </div>
+
+      {/* ── Section: Experience & Qualifications ── */}
+      <div>
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider font-(family-name:--font-ibm-plex-mono) mb-3">
+          Experience & Qualifications
+        </p>
+        <div className="space-y-4">
+          {/* Experience dropdown */}
+          <Select
+            label="Experience"
+            value={formData.experience}
+            onChange={(e) => updateField("experience", e.target.value)}
+            options={[
+              { value: "", label: "Select experience…" },
+              ...EXPERIENCE_OPTIONS.map((e) => ({ value: e, label: e })),
+            ]}
+          />
+
+          {/* Qualifications — chip multi-select */}
+          <ChipSelect
+            label="Qualifications"
+            options={QUALIFICATIONS}
+            selected={formData.qualifications}
+            onChange={(val) => updateField("qualifications", val)}
+          />
+
+          {/* Availability */}
+          <Select
+            label="Availability"
+            value={formData.availabilityStatus}
+            onChange={(e) => updateField("availabilityStatus", e.target.value)}
+            options={[
+              { value: "available", label: "Accepting New Students" },
+              { value: "limited", label: "Limited Availability" },
+            ]}
+          />
+        </div>
+      </div>
+
+      {/* ── Section: Bio & Highlights ── */}
+      <div>
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider font-(family-name:--font-ibm-plex-mono) mb-3">
+          Bio & Highlights
+        </p>
+        <div className="space-y-4">
+          <Textarea
+            label="Bio"
+            placeholder="Write a brief bio for this teacher…"
+            value={formData.bio}
+            onChange={(e) => updateField("bio", e.target.value)}
+          />
+
+          {/* Highlights — dynamic list */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-dark">Highlights</label>
+            {formData.highlights.map((h, idx) => (
+              <div key={idx} className="flex items-center gap-2">
+                <input
+                  className="flex-1 px-4 py-2.5 rounded-lg border border-gray-200 text-sm text-dark placeholder:text-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                  placeholder={`Highlight ${idx + 1}`}
+                  value={h}
+                  onChange={(e) => updateHighlight(idx, e.target.value)}
+                />
+                {formData.highlights.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeHighlight(idx)}
+                    className="p-2 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
+                  >
+                    <X className="w-4 h-4 text-red-400" />
+                  </button>
+                )}
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={addHighlight}
+              className="text-sm text-primary font-medium hover:underline cursor-pointer mt-1"
+            >
+              + Add Highlight
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -469,10 +744,10 @@ export default function TeachersView() {
   // ── stats ──
   const totalTeachers = teachers.length;
   const availableCount = teachers.filter(
-    (t) => t.availabilityStatus === "available",
+    (t) => t.availabilityStatus === "available"
   ).length;
   const limitedCount = teachers.filter(
-    (t) => t.availabilityStatus === "limited",
+    (t) => t.availabilityStatus === "limited"
   ).length;
 
   return (
@@ -559,7 +834,7 @@ export default function TeachersView() {
             <Button variant="ghost" onClick={() => setShowAddModal(false)}>
               Cancel
             </Button>
-            <Button onClick={handleAdd} disabled={saving || !formData.name}>
+            <Button onClick={handleAdd} disabled={saving || !formData.name || !formData.subject}>
               {saving ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" /> Saving…
@@ -585,7 +860,7 @@ export default function TeachersView() {
             <Button variant="ghost" onClick={() => setShowEditModal(false)}>
               Cancel
             </Button>
-            <Button onClick={handleEdit} disabled={saving || !formData.name}>
+            <Button onClick={handleEdit} disabled={saving || !formData.name || !formData.subject}>
               {saving ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" /> Saving…

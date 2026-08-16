@@ -243,13 +243,13 @@ export default function BookingsView() {
     {
       header: "Student Info",
       render: (row) => (
-        <div className="min-w-[160px]">
+        <div className="min-w-40">
           <p className="font-semibold text-dark">{row.studentName}</p>
           <p className="text-xs text-gray-500 mt-0.5">
             <span className="text-gray-400">P:</span> {row.parentName}
           </p>
           {row.email && (
-            <p className="text-[11px] text-gray-400 truncate max-w-[180px] mt-0.5">{row.email}</p>
+            <p className="text-[11px] text-gray-400 truncate max-w-45 mt-0.5">{row.email}</p>
           )}
         </div>
       ),
@@ -257,7 +257,7 @@ export default function BookingsView() {
     {
       header: "Subject Details",
       render: (row) => (
-        <div className="min-w-[150px]">
+        <div className="min-w-37.5">
           <span className="font-medium text-dark block">{row.subject}</span>
           <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
             <span className="text-[10px] font-semibold tracking-wide font-(family-name:--font-ibm-plex-mono) bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
@@ -275,7 +275,7 @@ export default function BookingsView() {
     {
       header: "Assigned Teacher",
       render: (row) => (
-        <div className="min-w-[140px]">
+        <div className="min-w-35">
           <p className="text-sm font-medium text-dark">{row.teacherName}</p>
           <p className="text-[11px] text-gray-400 mt-0.5">{row.teacherRole}</p>
         </div>
@@ -284,7 +284,7 @@ export default function BookingsView() {
     {
       header: "Session Details",
       render: (row) => (
-        <div className="min-w-[210px]">
+        <div className="min-w-52.5">
           <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-dark text-white text-[11px] font-medium font-(family-name:--font-ibm-plex-mono) mb-1.5">
             <Clock className="w-3.5 h-3.5 text-gray-300" />
             {row.timeSlot}
@@ -307,7 +307,7 @@ export default function BookingsView() {
         };
         
         return (
-          <div className="min-w-[120px]" onClick={(e) => e.stopPropagation()}>
+          <div className="min-w-30" onClick={(e) => e.stopPropagation()}>
             <select
               value={row.status}
               disabled={actionLoading}
@@ -338,7 +338,7 @@ export default function BookingsView() {
       header: "Actions",
       render: (row) => (
         <div
-          className="flex items-center gap-1.5 min-w-[110px]"
+          className="flex items-center gap-1.5 min-w-27.5"
           onClick={(e) => e.stopPropagation()}
         >
           <Button
