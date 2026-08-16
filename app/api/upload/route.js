@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
 
-// Configure Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -19,29 +18,24 @@ export async function POST(request) {
 
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
+    const mimeType = file.type || "image/jpeg";
+    const base64Data = buffer.toString("base64");
+    const dataUri = `data:${mimeType};base64,${base64Data}`;
 
-    // Upload to Cloudinary via upload_stream
-    const uploadResult = await new Promise((resolve, reject) => {
-      cloudinary.uploader.upload_stream(
-        {
-          folder: "teachers",
-          resource_type: "auto",
-        },
-        (error, result) => {
-          if (error) {
-            reject(error);
-          } else {
-            resolve(result);
-          }
-        }
-      ).end(buffer);
+    const uploadResult = await cloudinary.uploader.upload(dataUri, {
+      folder: "teachers",
+      resource_type: "image",
     });
+
+    if (!uploadResult || !uploadResult.secure_url) {
+      throw new Error("Failed to retrieve image URL from Cloudinary");
+    }
 
     return NextResponse.json({ url: uploadResult.secure_url });
   } catch (error) {
     console.error("Cloudinary upload API error:", error);
     return NextResponse.json(
-      { error: "Upload failed: " + error.message },
+      { error: error.message || "Upload failed" },
       { status: 500 }
     );
   }

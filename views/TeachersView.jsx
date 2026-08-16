@@ -13,7 +13,6 @@ import {
   AlertCircle,
   Check,
   Upload,
-  Image as ImageIcon,
 } from "lucide-react";
 import {
   collection,
@@ -90,15 +89,6 @@ const ROLE_TEMPLATES = [
   "Senior {subject} Tutor",
   "{subject} Faculty",
 ];
-
-// ─── helpers ────────────────────────────────────────────────────
-function slugify(text) {
-  return text
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
 
 function getRoleOptions(subject) {
   const subj = subject || "Subject";
@@ -184,7 +174,11 @@ export default function TeachersView() {
   // ── Firestore realtime listener ──
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "teachers"), (snap) => {
-      const docs = snap.docs.map((d) => ({ _docId: d.id, ...d.data() }));
+      const docs = snap.docs.map((d) => ({
+        id: d.id,
+        _docId: d.id,
+        ...d.data(),
+      }));
       setTeachers(docs);
       setLoading(false);
     });
@@ -252,7 +246,7 @@ export default function TeachersView() {
     }
   };
 
-  // ── build Firestore doc from form ──
+  // ── build Firestore doc data from form ──
   const buildDoc = () => {
     const highlights = formData.highlights.filter((h) => h.trim() !== "");
 
@@ -265,7 +259,6 @@ export default function TeachersView() {
         : "Limited Availability";
 
     return {
-      id: slugify(formData.name),
       name: formData.name,
       role: formData.role,
       image: formData.image,
@@ -286,8 +279,13 @@ export default function TeachersView() {
   const handleAdd = async () => {
     setSaving(true);
     try {
-      const data = buildDoc();
-      await setDoc(doc(db, "teachers", data.id), data);
+      // Create a new Firestore document with auto-generated Cloud Firestore ID
+      const newDocRef = doc(collection(db, "teachers"));
+      const docData = {
+        ...buildDoc(),
+        id: newDocRef.id,
+      };
+      await setDoc(newDocRef, docData);
       setShowAddModal(false);
       setFormData({ ...emptyForm });
     } catch (err) {
@@ -300,13 +298,12 @@ export default function TeachersView() {
     if (!selectedTeacher) return;
     setSaving(true);
     try {
-      const data = buildDoc();
-      if (data.id !== selectedTeacher._docId) {
-        await deleteDoc(doc(db, "teachers", selectedTeacher._docId));
-        await setDoc(doc(db, "teachers", data.id), data);
-      } else {
-        await updateDoc(doc(db, "teachers", selectedTeacher._docId), data);
-      }
+      const docId = selectedTeacher.id || selectedTeacher._docId;
+      const docData = {
+        ...buildDoc(),
+        id: docId,
+      };
+      await updateDoc(doc(db, "teachers", docId), docData);
       setShowEditModal(false);
       setSelectedTeacher(null);
     } catch (err) {
@@ -319,7 +316,8 @@ export default function TeachersView() {
     if (!selectedTeacher) return;
     setSaving(true);
     try {
-      await deleteDoc(doc(db, "teachers", selectedTeacher._docId));
+      const docId = selectedTeacher.id || selectedTeacher._docId;
+      await deleteDoc(doc(db, "teachers", docId));
       setShowDeleteModal(false);
       setSelectedTeacher(null);
     } catch (err) {
@@ -339,7 +337,6 @@ export default function TeachersView() {
   const openEdit = (teacher) => {
     setSelectedTeacher(teacher);
     setImageError("");
-    // If the image is not empty, show the preview. If it looks like a manual URL, we could show the URL input but defaulting to uploader (which also shows preview) is cleaner.
     setShowUrlInput(false);
 
     // parse levels string back to array (e.g. "IGCSE & A-Level" → ["IGCSE", "A-Level"])
@@ -404,14 +401,22 @@ export default function TeachersView() {
       header: "Teacher",
       render: (row) => (
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-deep-blue rounded-xl flex items-center justify-center shrink-0">
-            <span className="text-xs font-semibold text-primary">
-              {getInitials(row.name)}
-            </span>
-          </div>
+          {row.image ? (
+            <img
+              src={row.image}
+              alt={row.name}
+              className="w-10 h-10 bg-gray-100 rounded-xl object-cover shrink-0 border border-gray-100"
+            />
+          ) : (
+            <div className="w-10 h-10 bg-deep-blue rounded-xl flex items-center justify-center shrink-0">
+              <span className="text-xs font-semibold text-primary">
+                {getInitials(row.name)}
+              </span>
+            </div>
+          )}
           <div>
             <p className="font-semibold text-dark text-sm">{row.name}</p>
-            <p className="text-xs text-gray-400 truncate max-w-45">
+            <p className="text-xs text-gray-400 truncate max-w-50">
               {row.role}
             </p>
           </div>
@@ -454,7 +459,7 @@ export default function TeachersView() {
               openView(row);
             }}
             className="p-2 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-            title="View"
+            title="View Details"
           >
             <Eye className="w-4 h-4 text-gray-400" />
           </button>
@@ -464,7 +469,7 @@ export default function TeachersView() {
               openEdit(row);
             }}
             className="p-2 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-            title="Edit"
+            title="Edit Teacher"
           >
             <Edit className="w-4 h-4 text-gray-400" />
           </button>
@@ -474,7 +479,7 @@ export default function TeachersView() {
               openDelete(row);
             }}
             className="p-2 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
-            title="Delete"
+            title="Delete Teacher"
           >
             <Trash2 className="w-4 h-4 text-red-400" />
           </button>
@@ -502,6 +507,8 @@ export default function TeachersView() {
               value={formData.name}
               onChange={(e) => updateField("name", e.target.value)}
             />
+
+            {/* Profile Photo Uploader */}
             <div className="flex flex-col gap-1.5 justify-end">
               <div className="flex justify-between items-center">
                 <label className="text-sm font-medium text-dark">Teacher Photo</label>
@@ -510,40 +517,54 @@ export default function TeachersView() {
                   onClick={() => setShowUrlInput(!showUrlInput)}
                   className="text-xs text-primary hover:underline cursor-pointer"
                 >
-                  {showUrlInput ? "Use File Uploader" : "Or enter URL manually"}
+                  {showUrlInput ? "Use File Uploader" : "Or enter URL"}
                 </button>
               </div>
 
               {showUrlInput ? (
                 <Input
-                  placeholder="e.g. /stitch/founder.jpg"
+                  placeholder="e.g. https://res.cloudinary.com/..."
                   value={formData.image}
                   onChange={(e) => updateField("image", e.target.value)}
                 />
               ) : formData.image ? (
-                <div className="flex items-center gap-3 h-[46px]">
-                  <div className="relative group w-11 h-11 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center">
+                <div className="flex items-center gap-3 h-11.5">
+                  <div className="relative group w-11 h-11 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center shrink-0">
                     <img
                       src={formData.image}
                       alt="Preview"
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => updateField("image", "")}
-                    className="text-xs text-red-500 font-medium hover:underline cursor-pointer"
-                  >
-                    Delete Photo
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-primary font-medium hover:underline cursor-pointer">
+                      <span>Change</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
+                    </label>
+                    <span className="text-gray-300">|</span>
+                    <button
+                      type="button"
+                      onClick={() => updateField("image", "")}
+                      className="text-xs text-red-500 font-medium hover:underline cursor-pointer"
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </div>
               ) : (
-                <label className={`
-                  h-[46px] border border-dashed border-gray-300 rounded-lg
+                <label
+                  className={`
+                  h-11.5 border border-dashed border-gray-300 rounded-lg
                   flex items-center justify-center gap-2 cursor-pointer
                   hover:border-primary hover:bg-primary/5 transition-all duration-200
                   ${uploadingImage ? "pointer-events-none opacity-60" : ""}
-                `}>
+                `}
+                >
                   <input
                     type="file"
                     accept="image/*"
@@ -553,12 +574,16 @@ export default function TeachersView() {
                   {uploadingImage ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                      <span className="text-xs text-gray-500 font-medium">Uploading to Cloudinary...</span>
+                      <span className="text-xs text-gray-500 font-medium">
+                        Uploading to Cloudinary...
+                      </span>
                     </>
                   ) : (
                     <>
                       <Upload className="w-4 h-4 text-gray-400" />
-                      <span className="text-xs text-gray-500 font-medium">Upload Image file</span>
+                      <span className="text-xs text-gray-500 font-medium">
+                        Upload Teacher Photo
+                      </span>
                     </>
                   )}
                 </label>
@@ -583,7 +608,6 @@ export default function TeachersView() {
             value={formData.subject}
             onChange={(e) => {
               updateField("subject", e.target.value);
-              // reset role when subject changes so they pick a new relevant one
               updateField("role", "");
             }}
             options={[
@@ -620,9 +644,7 @@ export default function TeachersView() {
             <input
               className="mt-2 w-full px-4 py-2 rounded-lg border border-gray-200 text-sm text-dark placeholder:text-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
               placeholder="Or type a custom role…"
-              value={
-                roleOptions.includes(formData.role) ? "" : formData.role
-              }
+              value={roleOptions.includes(formData.role) ? "" : formData.role}
               onChange={(e) => updateField("role", e.target.value)}
             />
           </div>
@@ -818,9 +840,13 @@ export default function TeachersView() {
         </Card>
       </div>
 
-      {/* Teachers Table */}
+      {/* Teachers Table — clickable row opens profile view */}
       <Card noPadding>
-        <Table columns={columns} data={filtered} />
+        <Table
+          columns={columns}
+          data={filtered}
+          onRowClick={(row) => openView(row)}
+        />
       </Card>
 
       {/* ── Add Modal ── */}
@@ -834,7 +860,10 @@ export default function TeachersView() {
             <Button variant="ghost" onClick={() => setShowAddModal(false)}>
               Cancel
             </Button>
-            <Button onClick={handleAdd} disabled={saving || !formData.name || !formData.subject}>
+            <Button
+              onClick={handleAdd}
+              disabled={saving || !formData.name || !formData.subject}
+            >
               {saving ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" /> Saving…
@@ -860,7 +889,10 @@ export default function TeachersView() {
             <Button variant="ghost" onClick={() => setShowEditModal(false)}>
               Cancel
             </Button>
-            <Button onClick={handleEdit} disabled={saving || !formData.name || !formData.subject}>
+            <Button
+              onClick={handleEdit}
+              disabled={saving || !formData.name || !formData.subject}
+            >
               {saving ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" /> Saving…
@@ -890,10 +922,10 @@ export default function TeachersView() {
                 <img
                   src={selectedTeacher.image}
                   alt={selectedTeacher.name}
-                  className="w-16 h-16 rounded-2xl object-cover"
+                  className="w-16 h-16 rounded-2xl object-cover border border-gray-100 shrink-0"
                 />
               ) : (
-                <div className="w-16 h-16 bg-deep-blue rounded-2xl flex items-center justify-center">
+                <div className="w-16 h-16 bg-deep-blue rounded-2xl flex items-center justify-center shrink-0">
                   <span className="text-xl font-bold text-primary">
                     {getInitials(selectedTeacher.name)}
                   </span>
@@ -904,6 +936,9 @@ export default function TeachersView() {
                   {selectedTeacher.name}
                 </h3>
                 <p className="text-sm text-gray-500">{selectedTeacher.role}</p>
+                <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono) mt-0.5">
+                  ID: {selectedTeacher.id}
+                </p>
               </div>
               <div className="ml-auto">
                 <Badge
