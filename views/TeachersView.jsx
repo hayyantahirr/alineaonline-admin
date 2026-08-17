@@ -14,14 +14,7 @@ import {
   Check,
   Upload,
 } from "lucide-react";
-import {
-  collection,
-  onSnapshot,
-  doc,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-} from "firebase/firestore";
+import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "@/config/firebase";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -163,6 +156,7 @@ export default function TeachersView() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedTeacher, setSelectedTeacher] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState("");
 
   const [formData, setFormData] = useState({ ...emptyForm });
 
@@ -214,7 +208,7 @@ export default function TeachersView() {
       highlights: prev.highlights.map((h, i) => (i === idx ? value : h)),
     }));
 
-  // ── image upload handler ──
+  // ── image upload handler via secure API route ──
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -231,12 +225,11 @@ export default function TeachersView() {
         body: data,
       });
 
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || "Failed to upload image");
+      const resData = await res.json();
+      if (!res.ok || resData.error) {
+        throw new Error(resData.error || "Failed to upload image");
       }
 
-      const resData = await res.json();
       updateField("image", resData.url);
     } catch (err) {
       console.error("Cloudinary upload error:", err);
@@ -246,11 +239,10 @@ export default function TeachersView() {
     }
   };
 
-  // ── build Firestore doc data from form ──
+  // ── build doc payload for server API ──
   const buildDoc = () => {
     const highlights = formData.highlights.filter((h) => h.trim() !== "");
 
-    // auto-derive fields
     const levelsStr = formData.levels.join(" & ");
     const qualStr = formData.qualifications.join(" & ");
     const availabilityText =
@@ -275,41 +267,67 @@ export default function TeachersView() {
     };
   };
 
-  // ── CRUD handlers ──
+  // ── Secure Server CRUD handlers ──
   const handleAdd = async () => {
     setSaving(true);
+    setFormError("");
     try {
-      // Create a new Firestore document with auto-generated Cloud Firestore ID
-      const newDocRef = doc(collection(db, "teachers"));
-      const docData = {
-        ...buildDoc(),
-        id: newDocRef.id,
-      };
-      await setDoc(newDocRef, docData);
+      const payload = buildDoc();
+      const res = await fetch("/api/teachers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(
+          data.errors?.join(", ") || data.error || "Failed to create teacher."
+        );
+      }
+
       setShowAddModal(false);
       setFormData({ ...emptyForm });
     } catch (err) {
       console.error("Add teacher error:", err);
+      setFormError(err.message || "Failed to create teacher.");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const handleEdit = async () => {
     if (!selectedTeacher) return;
     setSaving(true);
+    setFormError("");
     try {
       const docId = selectedTeacher.id || selectedTeacher._docId;
-      const docData = {
+      const payload = {
         ...buildDoc(),
         id: docId,
       };
-      await updateDoc(doc(db, "teachers", docId), docData);
+
+      const res = await fetch("/api/teachers", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(
+          data.errors?.join(", ") || data.error || "Failed to update teacher."
+        );
+      }
+
       setShowEditModal(false);
       setSelectedTeacher(null);
     } catch (err) {
       console.error("Edit teacher error:", err);
+      setFormError(err.message || "Failed to update teacher.");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const handleDelete = async () => {
@@ -317,19 +335,31 @@ export default function TeachersView() {
     setSaving(true);
     try {
       const docId = selectedTeacher.id || selectedTeacher._docId;
-      await deleteDoc(doc(db, "teachers", docId));
+      const res = await fetch("/api/teachers", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: docId }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to delete teacher.");
+      }
+
       setShowDeleteModal(false);
       setSelectedTeacher(null);
     } catch (err) {
       console.error("Delete teacher error:", err);
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   // ── open modals ──
   const openAdd = () => {
     setFormData({ ...emptyForm, highlights: [""] });
     setImageError("");
+    setFormError("");
     setShowUrlInput(false);
     setShowAddModal(true);
   };
@@ -337,6 +367,7 @@ export default function TeachersView() {
   const openEdit = (teacher) => {
     setSelectedTeacher(teacher);
     setImageError("");
+    setFormError("");
     setShowUrlInput(false);
 
     // parse levels string back to array (e.g. "IGCSE & A-Level" → ["IGCSE", "A-Level"])
@@ -494,6 +525,12 @@ export default function TeachersView() {
   // ── form fields (shared between add & edit) ──
   const renderForm = () => (
     <div className="space-y-6">
+      {formError && (
+        <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-xs font-medium">
+          {formError}
+        </div>
+      )}
+
       {/* ── Section: Basic Info ── */}
       <div>
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider font-(family-name:--font-ibm-plex-mono) mb-3">
