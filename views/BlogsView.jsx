@@ -98,7 +98,7 @@ function Toast({ message, type = "success", onClose }) {
   }, [onClose]);
 
   return (
-    <div className="fixed bottom-6 right-6 z-[100] animate-slide-up">
+    <div className="fixed bottom-6 right-6 z-100 animate-slide-up">
       <div
         className={`
           flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-xl border
@@ -151,7 +151,7 @@ function TagInput({ tags = [], onChange }) {
   return (
     <div className="flex flex-col gap-1.5">
       <label className="text-sm font-medium text-dark">Tags</label>
-      <div className="flex flex-wrap gap-2 p-2.5 rounded-lg border border-gray-200 bg-white min-h-[42px] focus-within:ring-2 focus-within:ring-primary focus-within:border-transparent transition-all duration-200">
+      <div className="flex flex-wrap gap-2 p-2.5 rounded-lg border border-gray-200 bg-white min-h-10.5 focus-within:ring-2 focus-within:ring-primary focus-within:border-transparent transition-all duration-200">
         {tags.map((tag) => (
           <span
             key={tag}
@@ -174,7 +174,7 @@ function TagInput({ tags = [], onChange }) {
           onKeyDown={handleKeyDown}
           onBlur={addTag}
           placeholder={tags.length === 0 ? "Type and press Enter..." : ""}
-          className="flex-1 min-w-[120px] text-sm text-dark placeholder:text-gray-400 outline-none bg-transparent"
+          className="flex-1 min-w-30 text-sm text-dark placeholder:text-gray-400 outline-none bg-transparent"
         />
       </div>
     </div>

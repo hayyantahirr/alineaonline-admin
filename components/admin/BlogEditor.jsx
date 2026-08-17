@@ -8,7 +8,6 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import {
   Bold,
   Italic,
-  Code,
   Heading2,
   Heading3,
   Pilcrow,
@@ -18,11 +17,20 @@ import {
   Link as LinkIcon,
   Unlink,
   ImageIcon,
+  CodeXml,
+  Eye,
   Loader2,
 } from "lucide-react";
 
 // ─── Toolbar Button ─────────────────────────────────────────────
-function ToolbarButton({ onClick, isActive = false, disabled = false, title, children }) {
+function ToolbarButton({
+  onClick,
+  isActive = false,
+  disabled = false,
+  title,
+  children,
+  className = "",
+}) {
   return (
     <button
       type="button"
@@ -31,11 +39,13 @@ function ToolbarButton({ onClick, isActive = false, disabled = false, title, chi
       title={title}
       className={`
         p-2 rounded-lg transition-all duration-150 cursor-pointer
-        ${isActive
-          ? "bg-dark text-white shadow-sm"
-          : "text-gray-500 hover:bg-gray-100 hover:text-dark"
+        ${
+          isActive
+            ? "bg-dark text-white shadow-sm"
+            : "text-gray-500 hover:bg-gray-100 hover:text-dark"
         }
         ${disabled ? "opacity-40 cursor-not-allowed" : ""}
+        ${className}
       `}
     >
       {children}
@@ -51,17 +61,24 @@ function ToolbarDivider() {
 // ─── Blog Editor ────────────────────────────────────────────────
 export default function BlogEditor({ content = "", onChange }) {
   const [isUploading, setIsUploading] = useState(false);
+  const [isHtmlMode, setIsHtmlMode] = useState(false);
+  const [htmlCode, setHtmlCode] = useState(content || "");
   const fileInputRef = useRef(null);
 
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit.configure({
         heading: { levels: [2, 3] },
+        link: false,
+        code: false,
+        codeBlock: false,
       }),
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
-          class: "text-info underline underline-offset-2 hover:text-blue-800 transition-colors",
+          class:
+            "text-info underline underline-offset-2 hover:text-blue-800 transition-colors",
         },
       }),
       Image.configure({
@@ -78,9 +95,24 @@ export default function BlogEditor({ content = "", onChange }) {
         class:
           "prose prose-lg max-w-none min-h-[320px] px-5 py-4 focus:outline-none text-dark",
       },
+      // Smart paste handler: if pasted plain text is raw HTML markup, parse and insert it properly
+      handlePaste: (view, event) => {
+        const text = event.clipboardData?.getData("text/plain");
+        const html = event.clipboardData?.getData("text/html");
+
+        // If no rich HTML clipboard payload exists, but plain text contains HTML tags
+        if (!html && text && /<[a-z][\s\S]*>/i.test(text.trim())) {
+          event.preventDefault();
+          editor?.commands.insertContent(text.trim());
+          return true;
+        }
+        return false;
+      },
     },
     onUpdate: ({ editor }) => {
-      onChange?.(editor.getHTML());
+      const newHtml = editor.getHTML();
+      setHtmlCode(newHtml);
+      onChange?.(newHtml);
     },
   });
 
@@ -88,8 +120,33 @@ export default function BlogEditor({ content = "", onChange }) {
   useEffect(() => {
     if (editor && content !== editor.getHTML()) {
       editor.commands.setContent(content || "");
+      setHtmlCode(content || "");
     }
   }, [content]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ─── Toggle HTML Source Mode ──────────────────────────────────
+  const toggleHtmlMode = () => {
+    if (isHtmlMode) {
+      // Switching from HTML mode -> Visual WYSIWYG mode
+      if (editor) {
+        editor.commands.setContent(htmlCode || "");
+      }
+      onChange?.(htmlCode);
+      setIsHtmlMode(false);
+    } else {
+      // Switching from Visual mode -> HTML mode
+      if (editor) {
+        setHtmlCode(editor.getHTML());
+      }
+      setIsHtmlMode(true);
+    }
+  };
+
+  const handleHtmlCodeChange = (e) => {
+    const val = e.target.value;
+    setHtmlCode(val);
+    onChange?.(val);
+  };
 
   // ─── Link Insertion ─────────────────────────────────────────
   const handleLinkInsert = useCallback(() => {
@@ -104,12 +161,7 @@ export default function BlogEditor({ content = "", onChange }) {
       return;
     }
 
-    editor
-      .chain()
-      .focus()
-      .extendMarkRange("link")
-      .setLink({ href: url })
-      .run();
+    editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   }, [editor]);
 
   // ─── Image Upload ───────────────────────────────────────────
@@ -154,12 +206,12 @@ export default function BlogEditor({ content = "", onChange }) {
         }
       }
     },
-    [editor]
+    [editor],
   );
 
   if (!editor) {
     return (
-      <div className="w-full rounded-xl border border-gray-200 bg-white min-h-[400px] flex items-center justify-center">
+      <div className="w-full rounded-xl border border-gray-200 bg-white min-h-100 flex items-center justify-center">
         <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
       </div>
     );
@@ -168,132 +220,181 @@ export default function BlogEditor({ content = "", onChange }) {
   return (
     <div className="w-full rounded-xl border border-gray-200 bg-white overflow-hidden transition-all duration-200 focus-within:ring-2 focus-within:ring-primary focus-within:border-transparent">
       {/* Toolbar */}
-      <div className="flex items-center flex-wrap gap-0.5 px-3 py-2 border-b border-gray-100 bg-gray-50/50">
-        {/* Text Formatting */}
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleBold().run()}
-          isActive={editor.isActive("bold")}
-          title="Bold (Ctrl+B)"
-        >
-          <Bold className="w-4 h-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-          isActive={editor.isActive("italic")}
-          title="Italic (Ctrl+I)"
-        >
-          <Italic className="w-4 h-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleCode().run()}
-          isActive={editor.isActive("code")}
-          title="Inline Code"
-        >
-          <Code className="w-4 h-4" />
-        </ToolbarButton>
-
-        <ToolbarDivider />
-
-        {/* Headings */}
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          isActive={editor.isActive("heading", { level: 2 })}
-          title="Heading 2"
-        >
-          <Heading2 className="w-4 h-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-          isActive={editor.isActive("heading", { level: 3 })}
-          title="Heading 3"
-        >
-          <Heading3 className="w-4 h-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => editor.chain().focus().setParagraph().run()}
-          isActive={editor.isActive("paragraph")}
-          title="Paragraph"
-        >
-          <Pilcrow className="w-4 h-4" />
-        </ToolbarButton>
-
-        <ToolbarDivider />
-
-        {/* Lists */}
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
-          isActive={editor.isActive("bulletList")}
-          title="Bullet List"
-        >
-          <List className="w-4 h-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          isActive={editor.isActive("orderedList")}
-          title="Ordered List"
-        >
-          <ListOrdered className="w-4 h-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          isActive={editor.isActive("blockquote")}
-          title="Blockquote"
-        >
-          <Quote className="w-4 h-4" />
-        </ToolbarButton>
-
-        <ToolbarDivider />
-
-        {/* Link */}
-        <ToolbarButton
-          onClick={handleLinkInsert}
-          isActive={editor.isActive("link")}
-          title="Insert Link"
-        >
-          <LinkIcon className="w-4 h-4" />
-        </ToolbarButton>
-        {editor.isActive("link") && (
+      <div className="flex items-center justify-between flex-wrap gap-1 px-3 py-2 border-b border-gray-100 bg-gray-50/50">
+        <div className="flex items-center flex-wrap gap-0.5">
+          {/* Text Formatting */}
           <ToolbarButton
-            onClick={() => editor.chain().focus().unsetLink().run()}
-            title="Remove Link"
+            onClick={() => editor.chain().focus().toggleBold().run()}
+            isActive={editor.isActive("bold")}
+            disabled={isHtmlMode}
+            title="Bold (Ctrl+B)"
           >
-            <Unlink className="w-4 h-4" />
+            <Bold className="w-4 h-4" />
           </ToolbarButton>
-        )}
+          <ToolbarButton
+            onClick={() => editor.chain().focus().toggleItalic().run()}
+            isActive={editor.isActive("italic")}
+            disabled={isHtmlMode}
+            title="Italic (Ctrl+I)"
+          >
+            <Italic className="w-4 h-4" />
+          </ToolbarButton>
 
-        <ToolbarDivider />
+          <ToolbarDivider />
 
-        {/* Image Upload */}
-        <ToolbarButton
-          onClick={() => fileInputRef.current?.click()}
-          disabled={isUploading}
-          title="Insert Image"
-        >
-          {isUploading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <ImageIcon className="w-4 h-4" />
+          {/* Headings */}
+          <ToolbarButton
+            onClick={() =>
+              editor.chain().focus().toggleHeading({ level: 2 }).run()
+            }
+            isActive={editor.isActive("heading", { level: 2 })}
+            disabled={isHtmlMode}
+            title="Heading 2"
+          >
+            <Heading2 className="w-4 h-4" />
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() =>
+              editor.chain().focus().toggleHeading({ level: 3 }).run()
+            }
+            isActive={editor.isActive("heading", { level: 3 })}
+            disabled={isHtmlMode}
+            title="Heading 3"
+          >
+            <Heading3 className="w-4 h-4" />
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor.chain().focus().setParagraph().run()}
+            isActive={editor.isActive("paragraph")}
+            disabled={isHtmlMode}
+            title="Paragraph"
+          >
+            <Pilcrow className="w-4 h-4" />
+          </ToolbarButton>
+
+          <ToolbarDivider />
+
+          {/* Lists */}
+          <ToolbarButton
+            onClick={() => editor.chain().focus().toggleBulletList().run()}
+            isActive={editor.isActive("bulletList")}
+            disabled={isHtmlMode}
+            title="Bullet List"
+          >
+            <List className="w-4 h-4" />
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor.chain().focus().toggleOrderedList().run()}
+            isActive={editor.isActive("orderedList")}
+            disabled={isHtmlMode}
+            title="Numbered List"
+          >
+            <ListOrdered className="w-4 h-4" />
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor.chain().focus().toggleBlockquote().run()}
+            isActive={editor.isActive("blockquote")}
+            disabled={isHtmlMode}
+            title="Blockquote"
+          >
+            <Quote className="w-4 h-4" />
+          </ToolbarButton>
+
+          <ToolbarDivider />
+
+          {/* Link */}
+          <ToolbarButton
+            onClick={handleLinkInsert}
+            isActive={editor.isActive("link")}
+            disabled={isHtmlMode}
+            title="Insert Link"
+          >
+            <LinkIcon className="w-4 h-4" />
+          </ToolbarButton>
+          {editor.isActive("link") && !isHtmlMode && (
+            <ToolbarButton
+              onClick={() => editor.chain().focus().unsetLink().run()}
+              title="Remove Link"
+            >
+              <Unlink className="w-4 h-4" />
+            </ToolbarButton>
           )}
-        </ToolbarButton>
 
-        {isUploading && (
-          <span className="text-xs text-gray-400 ml-1 font-(family-name:--font-ibm-plex-mono)">
-            Uploading...
-          </span>
-        )}
+          <ToolbarDivider />
 
-        {/* Hidden File Input */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml"
-          onChange={handleImageUpload}
-          className="hidden"
-        />
+          {/* Image Upload */}
+          <ToolbarButton
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading || isHtmlMode}
+            title="Insert Image"
+          >
+            {isUploading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <ImageIcon className="w-4 h-4" />
+            )}
+          </ToolbarButton>
+
+          {isUploading && (
+            <span className="text-xs text-gray-400 ml-1 font-(family-name:--font-ibm-plex-mono)">
+              Uploading...
+            </span>
+          )}
+
+          {/* Hidden File Input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml"
+            onChange={handleImageUpload}
+            className="hidden"
+          />
+        </div>
+
+        {/* Mode Switcher: Visual vs HTML Source Code */}
+        <button
+          type="button"
+          onClick={toggleHtmlMode}
+          className={`
+            inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer border
+            ${
+              isHtmlMode
+                ? "bg-dark text-white border-dark shadow-sm"
+                : "bg-white text-gray-600 border-gray-200 hover:bg-gray-100 hover:text-dark"
+            }
+          `}
+          title={
+            isHtmlMode ? "Switch to Visual Editor" : "Edit Raw HTML Source"
+          }
+        >
+          {isHtmlMode ? (
+            <>
+              <Eye className="w-3.5 h-3.5" />
+              <span>Visual Mode</span>
+            </>
+          ) : (
+            <>
+              <CodeXml className="w-3.5 h-3.5" />
+              <span>HTML Source</span>
+            </>
+          )}
+        </button>
       </div>
 
-      {/* Editor Content */}
-      <EditorContent editor={editor} />
+      {/* Editor Content or Raw HTML View */}
+      {isHtmlMode ? (
+        <div className="p-3 bg-gray-900 min-h-80">
+          <textarea
+            value={htmlCode}
+            onChange={handleHtmlCodeChange}
+            placeholder="Paste or write raw HTML here..."
+            spellCheck={false}
+            className="w-full min-h-75 p-3 text-xs font-(family-name:--font-ibm-plex-mono) text-emerald-400 bg-transparent border-0 outline-none resize-y leading-relaxed"
+          />
+        </div>
+      ) : (
+        <EditorContent editor={editor} />
+      )}
     </div>
   );
 }
