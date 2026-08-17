@@ -127,8 +127,8 @@ function StepIndicator({ step }) {
                 step === s.n
                   ? "bg-primary text-dark"
                   : step > s.n
-                  ? "bg-success text-white"
-                  : "bg-gray-100 text-gray-400"
+                    ? "bg-success text-white"
+                    : "bg-gray-100 text-gray-400"
               }`}
             >
               {step > s.n ? <Check className="w-2.5 h-2.5" /> : s.n}
@@ -402,30 +402,27 @@ export default function SubjectsView() {
   };
 
   const addListItem = (levelIdx, boardIdx, listKey) => {
-    const cur =
-      formData.levels[levelIdx]?.boards[boardIdx]?.[listKey] || [];
+    const cur = formData.levels[levelIdx]?.boards[boardIdx]?.[listKey] || [];
     updateBoard(levelIdx, boardIdx, listKey, [...cur, ""]);
   };
 
   const removeListItem = (levelIdx, boardIdx, listKey, itemIdx) => {
-    const cur =
-      formData.levels[levelIdx]?.boards[boardIdx]?.[listKey] || [];
+    const cur = formData.levels[levelIdx]?.boards[boardIdx]?.[listKey] || [];
     updateBoard(
       levelIdx,
       boardIdx,
       listKey,
-      cur.filter((_, i) => i !== itemIdx)
+      cur.filter((_, i) => i !== itemIdx),
     );
   };
 
   const updateListItem = (levelIdx, boardIdx, listKey, itemIdx, value) => {
-    const cur =
-      formData.levels[levelIdx]?.boards[boardIdx]?.[listKey] || [];
+    const cur = formData.levels[levelIdx]?.boards[boardIdx]?.[listKey] || [];
     updateBoard(
       levelIdx,
       boardIdx,
       listKey,
-      cur.map((v, i) => (i === itemIdx ? value : v))
+      cur.map((v, i) => (i === itemIdx ? value : v)),
     );
   };
 
@@ -435,10 +432,15 @@ export default function SubjectsView() {
     setFormError("");
     try {
       const payload = { ...formData };
-      const matching = payload.title ? teachers.filter(t => t.subject === payload.title) : [];
-      payload.tutor = matching.length > 0 
-        ? matching.map(t => `${t.name}${t.role ? ` (${t.role})` : ""}`).join(", ") 
-        : "Teacher not available";
+      const matching = payload.title
+        ? teachers.filter((t) => t.subject === payload.title)
+        : [];
+      payload.tutor =
+        matching.length > 0
+          ? matching
+              .map((t) => `${t.name}${t.role ? ` (${t.role})` : ""}`)
+              .join(", ")
+          : "Teacher not available";
 
       const res = await fetch("/api/subjects", {
         method: "POST",
@@ -448,7 +450,7 @@ export default function SubjectsView() {
       const data = await res.json();
       if (!res.ok || !data.success) {
         throw new Error(
-          data.errors?.join(", ") || data.error || "Failed to create subject."
+          data.errors?.join(", ") || data.error || "Failed to create subject.",
         );
       }
       setShowAddModal(false);
@@ -467,10 +469,15 @@ export default function SubjectsView() {
     setFormError("");
     try {
       const payload = { ...formData, id: selectedSubject.id };
-      const matching = payload.title ? teachers.filter(t => t.subject === payload.title) : [];
-      payload.tutor = matching.length > 0 
-        ? matching.map(t => `${t.name}${t.role ? ` (${t.role})` : ""}`).join(", ") 
-        : "Teacher not available";
+      const matching = payload.title
+        ? teachers.filter((t) => t.subject === payload.title)
+        : [];
+      payload.tutor =
+        matching.length > 0
+          ? matching
+              .map((t) => `${t.name}${t.role ? ` (${t.role})` : ""}`)
+              .join(", ")
+          : "Teacher not available";
 
       const res = await fetch("/api/subjects", {
         method: "PUT",
@@ -480,7 +487,7 @@ export default function SubjectsView() {
       const data = await res.json();
       if (!res.ok || !data.success) {
         throw new Error(
-          data.errors?.join(", ") || data.error || "Failed to update subject."
+          data.errors?.join(", ") || data.error || "Failed to update subject.",
         );
       }
       setShowEditModal(false);
@@ -543,14 +550,12 @@ export default function SubjectsView() {
                   id: board.id || "",
                   label: board.label || "",
                   syllabus: board.syllabus || "",
-                  modules:
-                    board.modules?.length > 0 ? board.modules : [""],
+                  modules: board.modules?.length > 0 ? board.modules : [""],
                   examStructure:
                     board.examStructure?.length > 0
                       ? board.examStructure
                       : [""],
-                  skills:
-                    board.skills?.length > 0 ? board.skills : [""],
+                  skills: board.skills?.length > 0 ? board.skills : [""],
                 }))
               : [],
           }))
@@ -583,12 +588,6 @@ export default function SubjectsView() {
       )}
 
       <div className="grid grid-cols-2 gap-4">
-        <Input
-          label="Subject Number"
-          placeholder="01"
-          value={formData.num}
-          onChange={(e) => updateField("num", e.target.value)}
-        />
         <Select
           label="Subject Title *"
           value={formData.title}
@@ -598,15 +597,15 @@ export default function SubjectsView() {
             ...SUBJECTS.map((s) => ({ value: s, label: s })),
           ]}
         />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
         <Select
           label="Tag / Badge"
           value={formData.tag}
           onChange={(e) => updateField("tag", e.target.value)}
           options={TAG_OPTIONS.map((t) => ({ value: t, label: t }))}
         />
+      </div>
+
+      <div className="grid grid-cols-1 gap-4">
         <Select
           label="Badge Style"
           value={formData.badgeType}
@@ -630,7 +629,7 @@ export default function SubjectsView() {
         {formData.title ? (
           (() => {
             const matching = teachers.filter(
-              (t) => t.subject === formData.title
+              (t) => t.subject === formData.title,
             );
             return matching.length > 0 ? (
               <div className="flex flex-wrap gap-2">
@@ -672,11 +671,11 @@ export default function SubjectsView() {
     const activeBoard = activeLevel?.boards[activeBoardIdx];
 
     const availableLevels = LEVEL_PRESETS.filter(
-      (lp) => !formData.levels.some((l) => l.id === lp.id)
+      (lp) => !formData.levels.some((l) => l.id === lp.id),
     );
     const availableBoards = activeLevel
       ? BOARD_PRESETS.filter(
-          (bp) => !activeLevel.boards.some((b) => b.id === bp.id)
+          (bp) => !activeLevel.boards.some((b) => b.id === bp.id),
         )
       : BOARD_PRESETS;
 
@@ -697,7 +696,7 @@ export default function SubjectsView() {
                     boardIdx,
                     listKey,
                     itemIdx,
-                    e.target.value
+                    e.target.value,
                   )
                 }
               />
@@ -776,7 +775,7 @@ export default function SubjectsView() {
                 value=""
                 onChange={(e) => {
                   const preset = LEVEL_PRESETS.find(
-                    (lp) => lp.id === e.target.value
+                    (lp) => lp.id === e.target.value,
                   );
                   if (preset) addLevel(preset);
                   e.target.value = "";
@@ -851,7 +850,7 @@ export default function SubjectsView() {
                     value=""
                     onChange={(e) => {
                       const preset = BOARD_PRESETS.find(
-                        (bp) => bp.id === e.target.value
+                        (bp) => bp.id === e.target.value,
                       );
                       if (preset) addBoard(activeLevelIdx, preset);
                       e.target.value = "";
@@ -889,7 +888,7 @@ export default function SubjectsView() {
                       activeLevelIdx,
                       activeBoardIdx,
                       "syllabus",
-                      e.target.value
+                      e.target.value,
                     )
                   }
                 />
@@ -903,7 +902,7 @@ export default function SubjectsView() {
                     activeLevelIdx,
                     activeBoardIdx,
                     "modules",
-                    "Module"
+                    "Module",
                   )}
                 </div>
 
@@ -916,7 +915,7 @@ export default function SubjectsView() {
                     activeLevelIdx,
                     activeBoardIdx,
                     "examStructure",
-                    "Paper"
+                    "Paper",
                   )}
                 </div>
 
@@ -929,7 +928,7 @@ export default function SubjectsView() {
                     activeLevelIdx,
                     activeBoardIdx,
                     "skills",
-                    "Skill"
+                    "Skill",
                   )}
                 </div>
               </div>
@@ -1048,7 +1047,9 @@ export default function SubjectsView() {
           </div>
           <div>
             <p className="text-sm font-semibold text-dark">
-              {searchQuery ? "No subjects match your search" : "No subjects yet"}
+              {searchQuery
+                ? "No subjects match your search"
+                : "No subjects yet"}
             </p>
             <p className="text-xs text-gray-400 mt-1">
               {searchQuery
@@ -1114,10 +1115,10 @@ export default function SubjectsView() {
                           {level.id === "igcse"
                             ? "IGCSE"
                             : level.id === "a-level"
-                            ? "A-Level"
-                            : level.id === "as-level"
-                            ? "AS"
-                            : level.label.split("/")[0].trim()}
+                              ? "A-Level"
+                              : level.id === "as-level"
+                                ? "AS"
+                                : level.label.split("/")[0].trim()}
                         </span>
                         <div className="flex flex-wrap gap-1">
                           {(level.boards || []).map((board) => (
@@ -1259,17 +1260,10 @@ export default function SubjectsView() {
         size="sm"
         footer={
           <>
-            <Button
-              variant="ghost"
-              onClick={() => setShowDeleteModal(false)}
-            >
+            <Button variant="ghost" onClick={() => setShowDeleteModal(false)}>
               Cancel
             </Button>
-            <Button
-              variant="danger"
-              onClick={handleDelete}
-              disabled={saving}
-            >
+            <Button variant="danger" onClick={handleDelete} disabled={saving}>
               {saving ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" /> Deleting…
