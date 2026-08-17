@@ -22,6 +22,28 @@ import Modal from "@/components/ui/Modal";
 import { Input, Textarea, Select } from "@/components/ui/Input";
 
 // ─── Preset Options ───────────────────────────────────────────────────────────
+const SUBJECTS = [
+  "Economics",
+  "Mathematics",
+  "Physics",
+  "Chemistry",
+  "Biology",
+  "English Literature",
+  "English Language",
+  "Computer Science",
+  "History",
+  "Geography",
+  "Accounting",
+  "Business Studies",
+  "Psychology",
+  "Sociology",
+  "French",
+  "Spanish",
+  "Urdu",
+  "Islamiyat",
+  "Pakistan Studies",
+];
+
 const LEVEL_PRESETS = [
   { id: "igcse", label: "IGCSE / O-Level" },
   { id: "as-level", label: "AS-Level" },
@@ -155,7 +177,7 @@ function ViewLevelAccordion({ level }) {
 
 // ─── View: Board Section ──────────────────────────────────────────────────────
 function ViewBoardSection({ board }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   return (
     <div>
       <button
@@ -412,10 +434,16 @@ export default function SubjectsView() {
     setSaving(true);
     setFormError("");
     try {
+      const payload = { ...formData };
+      const matching = payload.title ? teachers.filter(t => t.subject === payload.title) : [];
+      payload.tutor = matching.length > 0 
+        ? matching.map(t => `${t.name}${t.role ? ` (${t.role})` : ""}`).join(", ") 
+        : "Teacher not available";
+
       const res = await fetch("/api/subjects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
@@ -438,10 +466,16 @@ export default function SubjectsView() {
     setSaving(true);
     setFormError("");
     try {
+      const payload = { ...formData, id: selectedSubject.id };
+      const matching = payload.title ? teachers.filter(t => t.subject === payload.title) : [];
+      payload.tutor = matching.length > 0 
+        ? matching.map(t => `${t.name}${t.role ? ` (${t.role})` : ""}`).join(", ") 
+        : "Teacher not available";
+
       const res = await fetch("/api/subjects", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, id: selectedSubject.id }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
@@ -555,11 +589,14 @@ export default function SubjectsView() {
           value={formData.num}
           onChange={(e) => updateField("num", e.target.value)}
         />
-        <Input
+        <Select
           label="Subject Title *"
-          placeholder="e.g. Economics"
           value={formData.title}
           onChange={(e) => updateField("title", e.target.value)}
+          options={[
+            { value: "", label: "Select a subject…" },
+            ...SUBJECTS.map((s) => ({ value: s, label: s })),
+          ]}
         />
       </div>
 
@@ -585,18 +622,47 @@ export default function SubjectsView() {
         onChange={(e) => updateField("description", e.target.value)}
       />
 
-      <Select
-        label="Assigned Tutor"
-        value={formData.tutor}
-        onChange={(e) => updateField("tutor", e.target.value)}
-        options={[
-          { value: "", label: "Select a tutor…" },
-          ...teachers.map((t) => ({
-            value: `${t.name}${t.role ? ` (${t.role})` : ""}`,
-            label: `${t.name}${t.role ? ` — ${t.role}` : ""}`,
-          })),
-        ]}
-      />
+      {/* Assigned Tutors Display */}
+      <div>
+        <label className="block text-sm font-medium text-dark mb-1.5">
+          Assigned Tutor(s)
+        </label>
+        {formData.title ? (
+          (() => {
+            const matching = teachers.filter(
+              (t) => t.subject === formData.title
+            );
+            return matching.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {matching.map((t) => (
+                  <div
+                    key={t.id}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-sm font-medium text-dark"
+                  >
+                    <span className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary">
+                      {t.name.charAt(0).toUpperCase()}
+                    </span>
+                    {t.name}
+                    {t.role && (
+                      <span className="text-xs text-gray-500 font-normal">
+                        — {t.role}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-3 rounded-lg bg-gray-50 border border-gray-200 text-sm text-gray-500 italic">
+                Teacher not available
+              </div>
+            );
+          })()
+        ) : (
+          <div className="p-3 rounded-lg bg-gray-50 border border-gray-200 text-sm text-gray-400">
+            Select a subject title first to view available teachers.
+          </div>
+        )}
+      </div>
     </div>
   );
 
@@ -754,7 +820,7 @@ export default function SubjectsView() {
                         px-3 py-1.5 rounded-l-lg text-xs font-medium border transition-all duration-200 cursor-pointer
                         ${
                           activeBoardIdx === bIdx
-                            ? "bg-primary text-dark border-primary"
+                            ? "bg-dark text-white border-dark"
                             : "bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:text-dark"
                         }
                       `}
@@ -768,7 +834,7 @@ export default function SubjectsView() {
                         px-2 py-1.5 rounded-r-lg border-y border-r text-xs transition-all duration-200 cursor-pointer
                         ${
                           activeBoardIdx === bIdx
-                            ? "bg-primary/80 text-dark/60 border-primary hover:text-dark"
+                            ? "bg-dark/80 text-gray-300 border-dark hover:text-white"
                             : "bg-white text-gray-300 border-gray-200 hover:text-red-400 hover:border-gray-300"
                         }
                       `}
@@ -829,8 +895,8 @@ export default function SubjectsView() {
                 />
 
                 {/* Modules */}
-                <div className="p-3.5 rounded-xl border border-gray-100 bg-gray-50/60 space-y-2">
-                  <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider font-(family-name:--font-ibm-plex-mono)">
+                <div className="p-4 rounded-xl border border-gray-200 bg-white space-y-3 shadow-sm">
+                  <p className="text-xs font-bold text-dark uppercase tracking-wider font-(family-name:--font-ibm-plex-mono)">
                     Modules / Topics
                   </p>
                   {renderDynamicList(
@@ -842,8 +908,8 @@ export default function SubjectsView() {
                 </div>
 
                 {/* Exam Structure */}
-                <div className="p-3.5 rounded-xl border border-gray-100 bg-gray-50/60 space-y-2">
-                  <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider font-(family-name:--font-ibm-plex-mono)">
+                <div className="p-4 rounded-xl border border-gray-200 bg-white space-y-3 shadow-sm">
+                  <p className="text-xs font-bold text-dark uppercase tracking-wider font-(family-name:--font-ibm-plex-mono)">
                     Exam Structure
                   </p>
                   {renderDynamicList(
@@ -855,8 +921,8 @@ export default function SubjectsView() {
                 </div>
 
                 {/* Key Skills */}
-                <div className="p-3.5 rounded-xl border border-gray-100 bg-gray-50/60 space-y-2">
-                  <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider font-(family-name:--font-ibm-plex-mono)">
+                <div className="p-4 rounded-xl border border-gray-200 bg-white space-y-3 shadow-sm">
+                  <p className="text-xs font-bold text-dark uppercase tracking-wider font-(family-name:--font-ibm-plex-mono)">
                     Key Skills
                   </p>
                   {renderDynamicList(
