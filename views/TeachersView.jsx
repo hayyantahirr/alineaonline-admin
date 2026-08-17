@@ -100,7 +100,9 @@ function ChipSelect({ label, options, selected = [], onChange }) {
 
   return (
     <div className="flex flex-col gap-2">
-      {label && <label className="text-sm font-medium text-dark">{label}</label>}
+      {label && (
+        <label className="text-sm font-medium text-dark">{label}</label>
+      )}
       <div className="flex flex-wrap gap-2">
         {options.map((opt) => {
           const isSelected = selected.includes(opt);
@@ -282,7 +284,7 @@ export default function TeachersView() {
       const data = await res.json();
       if (!res.ok || !data.success) {
         throw new Error(
-          data.errors?.join(", ") || data.error || "Failed to create teacher."
+          data.errors?.join(", ") || data.error || "Failed to create teacher.",
         );
       }
 
@@ -316,7 +318,7 @@ export default function TeachersView() {
       const data = await res.json();
       if (!res.ok || !data.success) {
         throw new Error(
-          data.errors?.join(", ") || data.error || "Failed to update teacher."
+          data.errors?.join(", ") || data.error || "Failed to update teacher.",
         );
       }
 
@@ -548,7 +550,9 @@ export default function TeachersView() {
             {/* Profile Photo Uploader */}
             <div className="flex flex-col gap-1.5 justify-end">
               <div className="flex justify-between items-center">
-                <label className="text-sm font-medium text-dark">Teacher Photo</label>
+                <label className="text-sm font-medium text-dark">
+                  Teacher Photo
+                </label>
                 <button
                   type="button"
                   onClick={() => setShowUrlInput(!showUrlInput)}
@@ -626,7 +630,9 @@ export default function TeachersView() {
                 </label>
               )}
               {imageError && (
-                <span className="text-xs text-red-500 font-medium">{imageError}</span>
+                <span className="text-xs text-red-500 font-medium">
+                  {imageError}
+                </span>
               )}
             </div>
           </div>
@@ -655,9 +661,7 @@ export default function TeachersView() {
 
           {/* Role/Tag dropdown — options depend on subject */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-dark">
-              Role / Tag
-            </label>
+            <label className="text-sm font-medium text-dark">Role / Tag</label>
             <div className="flex flex-wrap gap-2">
               {roleOptions.map((role) => (
                 <button
@@ -803,10 +807,10 @@ export default function TeachersView() {
   // ── stats ──
   const totalTeachers = teachers.length;
   const availableCount = teachers.filter(
-    (t) => t.availabilityStatus === "available"
+    (t) => t.availabilityStatus === "available",
   ).length;
   const limitedCount = teachers.filter(
-    (t) => t.availabilityStatus === "limited"
+    (t) => t.availabilityStatus === "limited",
   ).length;
 
   return (
