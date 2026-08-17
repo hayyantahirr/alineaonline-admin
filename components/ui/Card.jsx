@@ -1,6 +1,6 @@
 "use client";
 
-export default function Card({ children, className = "", header, footer, noPadding = false }) {
+export default function Card({ children, className = "", header, footer, noPadding = false, ...props }) {
   return (
     <div
       className={`
@@ -8,6 +8,7 @@ export default function Card({ children, className = "", header, footer, noPaddi
         transition-shadow duration-200 hover:shadow-md
         ${className}
       `}
+      {...props}
     >
       {header && (
         <div className="px-6 py-4 border-b border-gray-100">{header}</div>

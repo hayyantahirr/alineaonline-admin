@@ -688,7 +688,7 @@ export default function SubjectsView() {
           {items.map((item, itemIdx) => (
             <div key={itemIdx} className="flex items-center gap-2">
               <input
-                className="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-xs text-dark placeholder:text-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                className="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-xs text-dark placeholder:text-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-dark focus:border-transparent transition-all duration-200"
                 placeholder={`${placeholder} ${itemIdx + 1}`}
                 value={item}
                 onChange={(e) =>
@@ -717,9 +717,9 @@ export default function SubjectsView() {
           <button
             type="button"
             onClick={() => addListItem(levelIdx, boardIdx, listKey)}
-            className="text-xs text-primary font-medium hover:underline cursor-pointer"
+            className="w-fit inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-600 font-medium bg-gray-50 hover:bg-gray-100 hover:text-dark transition-colors cursor-pointer"
           >
-            + Add item
+            <Plus className="w-3 h-3" /> Add item
           </button>
         </div>
       );
@@ -772,7 +772,7 @@ export default function SubjectsView() {
             {/* Add Level selector */}
             {availableLevels.length > 0 && (
               <select
-                className="px-3 py-1.5 rounded-lg border border-dashed border-gray-300 text-xs text-gray-400 bg-white hover:border-primary hover:text-primary focus:outline-none focus:border-primary transition-all duration-200 cursor-pointer"
+                className="px-3 py-1.5 rounded-lg border border-dashed border-gray-300 text-xs text-gray-400 bg-white hover:border-dark hover:text-dark focus:outline-none focus:border-dark transition-all duration-200 cursor-pointer"
                 value=""
                 onChange={(e) => {
                   const preset = LEVEL_PRESETS.find(
@@ -847,7 +847,7 @@ export default function SubjectsView() {
                 {/* Add Board selector */}
                 {availableBoards.length > 0 && (
                   <select
-                    className="px-3 py-1.5 rounded-lg border border-dashed border-gray-300 text-xs text-gray-400 bg-white hover:border-primary hover:text-primary focus:outline-none focus:border-primary transition-all duration-200 cursor-pointer"
+                    className="px-3 py-1.5 rounded-lg border border-dashed border-gray-300 text-xs text-gray-400 bg-white hover:border-dark hover:text-dark focus:outline-none focus:border-dark transition-all duration-200 cursor-pointer"
                     value=""
                     onChange={(e) => {
                       const preset = BOARD_PRESETS.find(
