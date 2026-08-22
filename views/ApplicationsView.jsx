@@ -21,6 +21,7 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import Modal from "@/components/ui/Modal";
+import { formatSubjectTitle } from "@/lib/utils";
 
 const statusVariant = {
   Pending: "warning",
@@ -324,7 +325,7 @@ export default function ApplicationsView() {
                   {app.experience}
                 </span>
                 <span className="font-(family-name:--font-ibm-plex-mono) font-medium text-dark bg-gray-100 px-2 py-0.5 rounded">
-                  {app.subject}
+                  {formatSubjectTitle(app.subject) || "N/A"}
                 </span>
                 {app.location !== "N/A" && (
                   <span className="flex items-center gap-1 text-gray-400">
@@ -465,7 +466,7 @@ export default function ApplicationsView() {
                   SUBJECT / SPECIALIZATION
                 </p>
                 <p className="text-sm font-medium text-dark mt-0.5">
-                  {selectedApp.subject}
+                  {formatSubjectTitle(selectedApp.subject) || "N/A"}
                 </p>
               </div>
               <div>

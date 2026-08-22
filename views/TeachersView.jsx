@@ -22,30 +22,9 @@ import Badge from "@/components/ui/Badge";
 import Modal from "@/components/ui/Modal";
 import Table from "@/components/ui/Table";
 import { Input, Textarea, Select } from "@/components/ui/Input";
+import { formatSubjectTitle } from "@/lib/utils";
 
 // ─── preset options ─────────────────────────────────────────────
-const SUBJECTS = [
-  "Economics",
-  "Mathematics",
-  "Physics",
-  "Chemistry",
-  "Biology",
-  "English Literature",
-  "English Language",
-  "Computer Science",
-  "History",
-  "Geography",
-  "Accounting",
-  "Business Studies",
-  "Psychology",
-  "Sociology",
-  "French",
-  "Spanish",
-  "Urdu",
-  "Islamiyat",
-  "Pakistan Studies",
-];
-
 const LEVELS = ["IGCSE", "O-Level", "AS-Level", "A-Level"];
 
 const BOARDS = ["CAIE", "Edexcel", "AQA", "OCR", "WJEC", "IB"];
@@ -84,7 +63,7 @@ const ROLE_TEMPLATES = [
 ];
 
 function getRoleOptions(subject) {
-  const subj = subject || "Subject";
+  const subj = subject ? formatSubjectTitle(subject) : "Subject";
   return ROLE_TEMPLATES.map((t) => t.replace("{subject}", subj));
 }
 
@@ -149,6 +128,7 @@ const emptyForm = {
 // ─── component ──────────────────────────────────────────────────
 export default function TeachersView() {
   const [teachers, setTeachers] = useState([]);
+  const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -169,7 +149,7 @@ export default function TeachersView() {
 
   // ── Firestore realtime listener ──
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, "teachers"), (snap) => {
+    const unsubTeachers = onSnapshot(collection(db, "teachers"), (snap) => {
       const docs = snap.docs.map((d) => ({
         id: d.id,
         _docId: d.id,
@@ -178,7 +158,22 @@ export default function TeachersView() {
       setTeachers(docs);
       setLoading(false);
     });
-    return () => unsub();
+
+    const unsubSubjects = onSnapshot(collection(db, "subjects"), (snap) => {
+      const docs = snap.docs
+        .map((d) => ({
+          id: d.id,
+          _docId: d.id,
+          ...d.data(),
+        }))
+        .sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+      setSubjects(docs);
+    });
+
+    return () => {
+      unsubTeachers();
+      unsubSubjects();
+    };
   }, []);
 
   // ── filtered list ──
@@ -251,13 +246,14 @@ export default function TeachersView() {
       formData.availabilityStatus === "available"
         ? "Accepting New Students"
         : "Limited Availability";
+    const subjectLower = (formData.subject || "").trim().toLowerCase();
 
     return {
       name: formData.name,
       role: formData.role,
       image: formData.image,
-      subject: formData.subject,
-      subjectBookingParam: formData.subject,
+      subject: subjectLower,
+      subjectBookingParam: subjectLower,
       levels: levelsStr,
       boards: formData.boards,
       experience: formData.experience,
@@ -394,7 +390,7 @@ export default function TeachersView() {
       name: teacher.name || "",
       role: teacher.role || "",
       image: teacher.image || "",
-      subject: teacher.subject || "",
+      subject: (teacher.subject || "").toLowerCase(),
       levels: levelsArr,
       boards: Array.isArray(teacher.boards) ? teacher.boards : [],
       experience: teacher.experience || "",
@@ -456,7 +452,14 @@ export default function TeachersView() {
         </div>
       ),
     },
-    { header: "Subject", accessor: "subject" },
+    {
+      header: "Subject",
+      render: (row) => (
+        <span className="font-medium text-dark">
+          {formatSubjectTitle(row.subject) || "—"}
+        </span>
+      ),
+    },
     { header: "Levels", accessor: "levels" },
     {
       header: "Boards",
@@ -648,14 +651,23 @@ export default function TeachersView() {
           {/* Subject dropdown */}
           <Select
             label="Subject"
-            value={formData.subject}
+            value={(formData.subject || "").toLowerCase()}
             onChange={(e) => {
-              updateField("subject", e.target.value);
+              updateField("subject", e.target.value.toLowerCase());
               updateField("role", "");
             }}
             options={[
-              { value: "", label: "Select a subject…" },
-              ...SUBJECTS.map((s) => ({ value: s, label: s })),
+              {
+                value: "",
+                label:
+                  subjects.length === 0
+                    ? "No subjects available — add subjects in Subjects section first"
+                    : "Select a subject…",
+              },
+              ...subjects.map((s) => ({
+                value: (s.title || "").toLowerCase(),
+                label: formatSubjectTitle(s.title || ""),
+              })),
             ]}
           />
 
@@ -1001,7 +1013,7 @@ export default function TeachersView() {
                   SUBJECT
                 </p>
                 <p className="text-sm font-medium text-dark">
-                  {selectedTeacher.subject}
+                  {formatSubjectTitle(selectedTeacher.subject) || "—"}
                 </p>
               </div>
               <div>
@@ -1009,7 +1021,7 @@ export default function TeachersView() {
                   LEVELS
                 </p>
                 <p className="text-sm font-medium text-dark">
-                  {selectedTeacher.levels}
+                  {selectedTeacher.levels || "—"}
                 </p>
               </div>
               <div>
@@ -1017,7 +1029,7 @@ export default function TeachersView() {
                   EXPERIENCE
                 </p>
                 <p className="text-sm font-medium text-dark">
-                  {selectedTeacher.experience}
+                  {selectedTeacher.experience || "—"}
                 </p>
               </div>
               <div>
@@ -1025,7 +1037,7 @@ export default function TeachersView() {
                   QUALIFICATION
                 </p>
                 <p className="text-sm font-medium text-dark">
-                  {selectedTeacher.qualification}
+                  {selectedTeacher.qualification || "—"}
                 </p>
               </div>
               <div>
@@ -1033,7 +1045,7 @@ export default function TeachersView() {
                   BOOKING PARAM
                 </p>
                 <p className="text-sm font-medium text-dark">
-                  {selectedTeacher.subjectBookingParam}
+                  {formatSubjectTitle(selectedTeacher.subjectBookingParam) || "—"}
                 </p>
               </div>
               <div>

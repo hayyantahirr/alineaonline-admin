@@ -20,30 +20,9 @@ import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import Modal from "@/components/ui/Modal";
 import { Input, Textarea, Select } from "@/components/ui/Input";
+import { formatSubjectTitle } from "@/lib/utils";
 
 // ─── Preset Options ───────────────────────────────────────────────────────────
-const SUBJECTS = [
-  "Economics",
-  "Mathematics",
-  "Physics",
-  "Chemistry",
-  "Biology",
-  "English Literature",
-  "English Language",
-  "Computer Science",
-  "History",
-  "Geography",
-  "Accounting",
-  "Business Studies",
-  "Psychology",
-  "Sociology",
-  "French",
-  "Spanish",
-  "Urdu",
-  "Islamiyat",
-  "Pakistan Studies",
-];
-
 const LEVEL_PRESETS = [
   { id: "igcse", label: "IGCSE / O-Level" },
   { id: "as-level", label: "AS-Level" },
@@ -431,9 +410,10 @@ export default function SubjectsView() {
     setSaving(true);
     setFormError("");
     try {
-      const payload = { ...formData };
-      const matching = payload.title
-        ? teachers.filter((t) => t.subject === payload.title)
+      const lowerTitle = formData.title.trim().toLowerCase();
+      const payload = { ...formData, title: lowerTitle };
+      const matching = lowerTitle
+        ? teachers.filter((t) => (t.subject || "").toLowerCase() === lowerTitle)
         : [];
       payload.tutor =
         matching.length > 0
@@ -468,9 +448,10 @@ export default function SubjectsView() {
     setSaving(true);
     setFormError("");
     try {
-      const payload = { ...formData, id: selectedSubject.id };
-      const matching = payload.title
-        ? teachers.filter((t) => t.subject === payload.title)
+      const lowerTitle = formData.title.trim().toLowerCase();
+      const payload = { ...formData, title: lowerTitle, id: selectedSubject.id };
+      const matching = lowerTitle
+        ? teachers.filter((t) => (t.subject || "").toLowerCase() === lowerTitle)
         : [];
       payload.tutor =
         matching.length > 0
@@ -588,14 +569,11 @@ export default function SubjectsView() {
       )}
 
       <div className="grid grid-cols-2 gap-4">
-        <Select
+        <Input
           label="Subject Title *"
+          placeholder="e.g. Mathematics, Economics, Physics…"
           value={formData.title}
           onChange={(e) => updateField("title", e.target.value)}
-          options={[
-            { value: "", label: "Select a subject…" },
-            ...SUBJECTS.map((s) => ({ value: s, label: s })),
-          ]}
         />
         <Select
           label="Tag / Badge"
@@ -628,8 +606,9 @@ export default function SubjectsView() {
         </label>
         {formData.title ? (
           (() => {
+            const trimmedTitle = formData.title.trim().toLowerCase();
             const matching = teachers.filter(
-              (t) => t.subject === formData.title,
+              (t) => (t.subject || "").toLowerCase() === trimmedTitle,
             );
             return matching.length > 0 ? (
               <div className="flex flex-wrap gap-2">
@@ -658,7 +637,7 @@ export default function SubjectsView() {
           })()
         ) : (
           <div className="p-3 rounded-lg bg-gray-50 border border-gray-200 text-sm text-gray-400">
-            Select a subject title first to view available teachers.
+            Type a subject title first to view available teachers.
           </div>
         )}
       </div>
@@ -1078,7 +1057,7 @@ export default function SubjectsView() {
                     </span>
                     <div>
                       <h3 className="text-sm font-semibold text-dark leading-tight">
-                        {subject.title}
+                        {formatSubjectTitle(subject.title)}
                       </h3>
                       {subject.tutor && (
                         <p className="text-[11px] text-gray-400 truncate max-w-35">
@@ -1192,7 +1171,7 @@ export default function SubjectsView() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h2 className="text-lg font-semibold text-dark">
-                    {selectedSubject.title}
+                    {formatSubjectTitle(selectedSubject.title)}
                   </h2>
                   {selectedSubject.tag && (
                     <Badge
@@ -1278,7 +1257,7 @@ export default function SubjectsView() {
         <p className="text-sm text-gray-600">
           Are you sure you want to delete{" "}
           <span className="font-semibold text-dark">
-            {selectedSubject?.title}
+            {formatSubjectTitle(selectedSubject?.title)}
           </span>
           ? This will remove all levels, boards, and curriculum data. This
           action cannot be undone.

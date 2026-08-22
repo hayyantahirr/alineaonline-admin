@@ -52,6 +52,25 @@ function validateInput(body) {
   return errors;
 }
 
+// ─── GET: Fetch All Subjects ────────────────────────────────────────────────
+export async function GET() {
+  try {
+    const { getDocs } = await import("firebase/firestore");
+    const snap = await getDocs(collection(db, "subjects"));
+    const subjects = snap.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (a.num || a.title || "").localeCompare(b.num || b.title || ""));
+
+    return NextResponse.json({ success: true, subjects }, { status: 200 });
+  } catch (error) {
+    console.error("GET /api/subjects error:", error);
+    return NextResponse.json(
+      { success: false, error: "Internal server error. Failed to fetch subjects." },
+      { status: 500 }
+    );
+  }
+}
+
 // ─── POST: Create Subject ────────────────────────────────────────────────────
 export async function POST(request) {
   try {
@@ -66,7 +85,7 @@ export async function POST(request) {
     const subjectData = {
       id: docRef.id,
       num: String(body.num || "").trim(),
-      title: String(body.title || "").trim(),
+      title: String(body.title || "").trim().toLowerCase(),
       tag: String(body.tag || "").trim(),
       badgeType: String(body.badgeType || "gray-outline").trim(),
       description: String(body.description || "").trim(),
@@ -114,7 +133,7 @@ export async function PUT(request) {
     const updateData = {
       id: docId,
       num: String(body.num || "").trim(),
-      title: String(body.title || "").trim(),
+      title: String(body.title || "").trim().toLowerCase(),
       tag: String(body.tag || "").trim(),
       badgeType: String(body.badgeType || "gray-outline").trim(),
       description: String(body.description || "").trim(),

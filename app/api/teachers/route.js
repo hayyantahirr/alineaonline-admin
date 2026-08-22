@@ -65,13 +65,14 @@ export async function POST(request) {
     const newDocRef = doc(collection(db, "teachers"));
     const teacherId = newDocRef.id;
 
+    const subjectLower = String(body.subject || "").trim().toLowerCase();
     const teacherData = {
       id: teacherId,
       name: String(body.name || "").trim(),
       role: String(body.role || "").trim(),
       image: String(body.image || "").trim(),
-      subject: String(body.subject || "").trim(),
-      subjectBookingParam: String(body.subjectBookingParam || body.subject || "").trim(),
+      subject: subjectLower,
+      subjectBookingParam: String(body.subjectBookingParam || subjectLower).trim().toLowerCase(),
       levels: String(body.levels || "").trim(),
       boards: Array.isArray(body.boards) ? body.boards : [],
       experience: String(body.experience || "").trim(),
@@ -126,13 +127,14 @@ export async function PUT(request) {
     const docRef = doc(db, "teachers", docId);
 
     // 2. Prepare Updated Fields with Server Metadata
+    const subjectLower = String(body.subject || "").trim().toLowerCase();
     const updateData = {
       id: docId,
       name: String(body.name || "").trim(),
       role: String(body.role || "").trim(),
       image: String(body.image || "").trim(),
-      subject: String(body.subject || "").trim(),
-      subjectBookingParam: String(body.subjectBookingParam || body.subject || "").trim(),
+      subject: subjectLower,
+      subjectBookingParam: String(body.subjectBookingParam || subjectLower).trim().toLowerCase(),
       levels: String(body.levels || "").trim(),
       boards: Array.isArray(body.boards) ? body.boards : [],
       experience: String(body.experience || "").trim(),

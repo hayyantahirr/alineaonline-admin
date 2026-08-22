@@ -29,7 +29,7 @@ export async function POST(request) {
       name: String(body.name).trim(),
       email: String(body.email).trim().toLowerCase(),
       phone: body.phone ? String(body.phone).trim() : "",
-      subject: String(body.subject).trim(),
+      subject: String(body.subject).trim().toLowerCase(),
       experience: body.experience ? String(body.experience).trim() : "",
       qualifications: body.qualifications ? String(body.qualifications).trim() : "",
       cvUrl: body.cvUrl ? String(body.cvUrl).trim() : "",
