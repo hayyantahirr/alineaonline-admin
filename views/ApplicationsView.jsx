@@ -21,6 +21,7 @@ import {
   X,
   UserCheck,
   Sparkles,
+  Lock,
 } from "lucide-react";
 import {
   collection,
@@ -78,8 +79,9 @@ function getRoleOptions(subject) {
 }
 
 // ─── ChipSelect Component ───────────────────────────────────────
-function ChipSelect({ label, options, selected = [], onChange }) {
+function ChipSelect({ label, options, selected = [], onChange, disabled = false }) {
   const toggle = (val) => {
+    if (disabled) return;
     if (selected.includes(val)) {
       onChange(selected.filter((s) => s !== val));
     } else {
@@ -99,10 +101,12 @@ function ChipSelect({ label, options, selected = [], onChange }) {
             <button
               key={opt}
               type="button"
+              disabled={disabled}
               onClick={() => toggle(opt)}
               className={`
                 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium
-                border transition-all duration-200 cursor-pointer
+                border transition-all duration-200
+                ${disabled ? "cursor-default opacity-80" : "cursor-pointer"}
                 ${
                   isSelected
                     ? "bg-primary text-dark border-primary shadow-sm"
@@ -141,7 +145,7 @@ const initialTeacherForm = {
   highlights: [""],
 };
 
-export default function ApplicationsView() {
+export default function ApplicationsView({ onNavigate }) {
   const [applications, setApplications] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -395,7 +399,8 @@ export default function ApplicationsView() {
   // ── Open Review Modal & Initialize Teacher Form ──
   const openReview = (app, initialTab = "review") => {
     setSelectedApp(app);
-    setActiveModalTab(initialTab);
+    // If already approved, default to 'review' tab and lock approval changes
+    setActiveModalTab(app.status === "Approved" ? "review" : initialTab);
     setApprovalError("");
     setImageError("");
     setShowUrlInput(false);
@@ -406,13 +411,29 @@ export default function ApplicationsView() {
     const suggestedRole =
       roleOptions[1] || `${formatSubjectTitle(appSubj)} Specialist`;
 
-    // Match levels to known LEVELS or use directly
+    // Match levels to known LEVELS with case-insensitive normalization so they appear pre-selected
     const appLevels = Array.isArray(app.levels) ? app.levels : [];
-    const matchedLevels = appLevels.length > 0 ? appLevels : [];
+    const matchedLevels = appLevels
+      .map((l) => {
+        const str = String(l || "").trim();
+        const found = LEVELS.find(
+          (preset) => preset.toLowerCase() === str.toLowerCase(),
+        );
+        return found || str;
+      })
+      .filter(Boolean);
 
-    // Match boards to known BOARDS or use directly
+    // Match boards to known BOARDS with case-insensitive normalization so they appear pre-selected
     const appBoards = Array.isArray(app.examBoards) ? app.examBoards : [];
-    const matchedBoards = appBoards.length > 0 ? appBoards : [];
+    const matchedBoards = appBoards
+      .map((b) => {
+        const str = String(b || "").trim();
+        const found = BOARDS.find(
+          (preset) => preset.toLowerCase() === str.toLowerCase(),
+        );
+        return found || str;
+      })
+      .filter(Boolean);
 
     // Match experience
     const matchedExp =
@@ -422,7 +443,7 @@ export default function ApplicationsView() {
       app.experience ||
       "3-5 Years";
 
-    // Setup teacher form
+    // Setup teacher form with pre-selected boards, levels, and highlights
     setTeacherForm({
       name: app.name || "",
       role: suggestedRole,
@@ -446,6 +467,14 @@ export default function ApplicationsView() {
   // ── Approve and Create Teacher in Firestore ──
   const handleApproveTeacher = async () => {
     if (!selectedApp) return;
+
+    // Check if application is already approved — do not allow modifying/re-approving
+    if (selectedApp.status === "Approved") {
+      setApprovalError(
+        "This application is already approved. Please edit teacher details directly from the Teachers section.",
+      );
+      return;
+    }
 
     // Checks & Validation
     if (!teacherForm.name.trim()) {
@@ -529,6 +558,7 @@ export default function ApplicationsView() {
 
   // ── Reject Application ──
   const handleReject = async (id) => {
+    if (selectedApp?.status === "Approved") return;
     try {
       const appRef = doc(db, "career_applications", id);
       await updateDoc(appRef, {
@@ -570,6 +600,7 @@ export default function ApplicationsView() {
 
   const statusTabs = ["All", "Pending", "Approved", "Rejected"];
   const roleOptions = getRoleOptions(teacherForm.subject);
+  const isApproved = selectedApp?.status === "Approved";
 
   return (
     <div className="space-y-6">
@@ -580,8 +611,7 @@ export default function ApplicationsView() {
             Teacher Applications
           </h1>
           <p className="text-xs sm:text-sm text-gray-500 mt-1">
-            Review incoming teacher applications, assign role tags, and approve
-            to instantly add them to the Teachers directory.
+            Review incoming applications, assign role tags & exam boards, and approve them to add them to Teachers. Once approved, teacher profiles are edited from the Teachers section.
           </p>
         </div>
         <div className="relative w-full sm:w-72">
@@ -623,7 +653,7 @@ export default function ApplicationsView() {
                 {applications.filter((a) => a.status === "Approved").length}
               </p>
               <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono)">
-                APPROVED & ADDED
+                APPROVED (IN TEACHERS)
               </p>
             </div>
           </div>
@@ -725,7 +755,9 @@ export default function ApplicationsView() {
                       )}
                     </div>
                   </div>
-                  <Badge variant={statusVariant[app.status] || "default"}>
+                  <Badge
+                    variant={statusVariant[app.status] || "default"}
+                  >
                     {app.status}
                   </Badge>
                 </div>
@@ -800,6 +832,15 @@ export default function ApplicationsView() {
                     >
                       Review & Approve
                     </Button>
+                  ) : app.status === "Approved" ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      icon={Eye}
+                      onClick={() => openReview(app, "review")}
+                    >
+                      View Application
+                    </Button>
                   ) : (
                     <Button
                       size="sm"
@@ -836,15 +877,21 @@ export default function ApplicationsView() {
       <Modal
         isOpen={showReviewModal}
         onClose={() => setShowReviewModal(false)}
-        title="Application Review & Teacher Approval"
+        title={
+          isApproved
+            ? "Approved Teacher Application"
+            : "Application Review & Teacher Approval"
+        }
         size="xl"
         footer={
           <div className="flex flex-wrap items-center justify-between w-full gap-3">
             <div className="flex items-center gap-2">
-              {selectedApp?.status === "Approved" ? (
-                <div className="flex items-center gap-1.5 text-xs text-emerald-600 font-medium bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100">
-                  <CheckCircle className="w-4 h-4 text-emerald-600" />
-                  Approved & added to Teachers Directory
+              {isApproved ? (
+                <div className="flex items-center gap-1.5 text-xs text-emerald-700 font-medium bg-emerald-50 px-3.5 py-2 rounded-xl border border-emerald-200">
+                  <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>
+                    This application is approved. Profile can be edited in the <strong>Teachers</strong> section.
+                  </span>
                 </div>
               ) : selectedApp?.status === "Rejected" ? (
                 <div className="flex items-center gap-1.5 text-xs text-red-600 font-medium bg-red-50 px-3 py-1.5 rounded-lg border border-red-100">
@@ -860,22 +907,22 @@ export default function ApplicationsView() {
                 onClick={() => setShowReviewModal(false)}
                 disabled={submittingApproval}
               >
-                Cancel
+                {isApproved ? "Close" : "Cancel"}
               </Button>
 
-              {selectedApp?.status !== "Rejected" &&
-                selectedApp?.status !== "Approved" && (
-                  <Button
-                    variant="danger"
-                    icon={XCircle}
-                    onClick={() => handleReject(selectedApp?.id)}
-                    disabled={submittingApproval}
-                  >
-                    Reject
-                  </Button>
-                )}
+              {/* Only show Reject & Approve buttons if application is NOT approved */}
+              {!isApproved && selectedApp?.status !== "Rejected" && (
+                <Button
+                  variant="danger"
+                  icon={XCircle}
+                  onClick={() => handleReject(selectedApp?.id)}
+                  disabled={submittingApproval}
+                >
+                  Reject
+                </Button>
+              )}
 
-              {selectedApp?.status !== "Approved" && (
+              {!isApproved && (
                 <Button
                   variant="success"
                   icon={submittingApproval ? Loader2 : CheckCircle}
@@ -1003,9 +1050,13 @@ export default function ApplicationsView() {
                   }
                 `}
               >
-                <UserCheck className="w-4 h-4" />
-                Teacher Setup & Approval
-                {selectedApp.status === "Pending" && (
+                {isApproved ? (
+                  <Lock className="w-4 h-4 text-emerald-600" />
+                ) : (
+                  <UserCheck className="w-4 h-4" />
+                )}
+                {isApproved ? "Approved Teacher Profile" : "Teacher Setup & Approval"}
+                {!isApproved && selectedApp.status === "Pending" && (
                   <span className="w-2 h-2 rounded-full bg-primary" />
                 )}
               </button>
@@ -1123,16 +1174,15 @@ export default function ApplicationsView() {
                   </div>
                 </div>
 
-                {/* Quick CTA to Setup & Approve */}
-                {selectedApp.status === "Pending" && (
+                {/* Quick CTA to Setup & Approve if Pending */}
+                {!isApproved && selectedApp.status === "Pending" && (
                   <div className="p-4 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-between gap-4">
                     <div>
                       <h4 className="text-sm font-bold text-dark">
                         Ready to approve {selectedApp.name}?
                       </h4>
                       <p className="text-xs text-gray-600 mt-0.5">
-                        Assign a role tag and verify teaching settings before
-                        adding to the Teachers directory.
+                        Assign a role tag, review pre-selected exam boards & levels, and approve to add to Teachers.
                       </p>
                     </div>
                     <Button
@@ -1144,12 +1194,44 @@ export default function ApplicationsView() {
                     </Button>
                   </div>
                 )}
+
+                {/* If already approved notice */}
+                {isApproved && (
+                  <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
+                      <div>
+                        <h4 className="text-sm font-bold text-dark">
+                          Teacher Profile Active
+                        </h4>
+                        <p className="text-xs text-gray-600 mt-0.5">
+                          {selectedApp.name} is approved and active in the Teachers directory. Future edits must be made in the Teachers section.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
             {/* ── TAB 2: Teacher Setup & Approval Workspace ── */}
             {activeModalTab === "approve" && (
               <div className="space-y-6 animate-fade-in">
+                {/* Notice banner if application is ALREADY approved (Lock changes) */}
+                {isApproved ? (
+                  <div className="p-4 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-xs sm:text-sm flex items-start gap-3">
+                    <Lock className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-bold text-dark">
+                        Teacher Approved — Read Only
+                      </p>
+                      <p className="mt-1 text-gray-600 leading-relaxed">
+                        This application has already been approved and added as an active teacher. To edit the teacher's profile, role tag, boards, or subject, please go to the <strong>Teachers</strong> section.
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
+
                 {approvalError && (
                   <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs font-medium flex items-center gap-2">
                     <XCircle className="w-4 h-4 text-red-500 shrink-0" />
@@ -1164,11 +1246,13 @@ export default function ApplicationsView() {
                       <Sparkles className="w-4 h-4 text-amber-600" />
                       <label className="text-sm font-bold text-dark">
                         Teacher Role / Tag{" "}
-                        <span className="text-red-500">*</span>
+                        {!isApproved && <span className="text-red-500">*</span>}
                       </label>
                     </div>
                     <span className="text-xs text-amber-700 font-medium">
-                      Select or type a tag before approving
+                      {isApproved
+                        ? "Assigned role tag"
+                        : "Select or type a tag before approving"}
                     </span>
                   </div>
 
@@ -1180,9 +1264,11 @@ export default function ApplicationsView() {
                         <button
                           key={role}
                           type="button"
+                          disabled={isApproved}
                           onClick={() => updateTeacherField("role", role)}
                           className={`
-                            px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium border transition-all duration-200 cursor-pointer
+                            px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium border transition-all duration-200
+                            ${isApproved ? "cursor-default opacity-80" : "cursor-pointer"}
                             ${
                               isSelected
                                 ? "bg-dark text-white border-dark shadow-sm"
@@ -1202,7 +1288,8 @@ export default function ApplicationsView() {
                   {/* Custom Role input */}
                   <div className="pt-2">
                     <input
-                      className="w-full px-4 py-2 rounded-lg border border-gray-200 text-sm text-dark placeholder:text-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                      disabled={isApproved}
+                      className="w-full px-4 py-2 rounded-lg border border-gray-200 text-sm text-dark placeholder:text-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all disabled:bg-gray-100 disabled:cursor-not-allowed"
                       placeholder="Or type a custom role tag (e.g. Lead Cambridge Math Specialist)…"
                       value={teacherForm.role}
                       onChange={(e) =>
@@ -1220,6 +1307,7 @@ export default function ApplicationsView() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Input
                       label="Teacher Name"
+                      disabled={isApproved}
                       placeholder="e.g. Sarah Jenkins"
                       value={teacherForm.name}
                       onChange={(e) =>
@@ -1233,16 +1321,18 @@ export default function ApplicationsView() {
                         <label className="text-sm font-medium text-dark">
                           Teacher Photo
                         </label>
-                        <button
-                          type="button"
-                          onClick={() => setShowUrlInput(!showUrlInput)}
-                          className="text-xs text-primary hover:underline cursor-pointer"
-                        >
-                          {showUrlInput ? "Use File Uploader" : "Or enter URL"}
-                        </button>
+                        {!isApproved && (
+                          <button
+                            type="button"
+                            onClick={() => setShowUrlInput(!showUrlInput)}
+                            className="text-xs text-primary hover:underline cursor-pointer"
+                          >
+                            {showUrlInput ? "Use File Uploader" : "Or enter URL"}
+                          </button>
+                        )}
                       </div>
 
-                      {showUrlInput ? (
+                      {showUrlInput && !isApproved ? (
                         <Input
                           placeholder="e.g. https://res.cloudinary.com/..."
                           value={teacherForm.image}
@@ -1259,41 +1349,46 @@ export default function ApplicationsView() {
                               className="w-full h-full object-cover"
                             />
                           </div>
-                          <div className="flex items-center gap-2">
-                            <label className="text-xs text-primary font-medium hover:underline cursor-pointer">
-                              <span>Change Photo</span>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={handleImageUpload}
-                                className="hidden"
-                              />
-                            </label>
-                            <span className="text-gray-300">|</span>
-                            <button
-                              type="button"
-                              onClick={() => updateTeacherField("image", "")}
-                              className="text-xs text-red-500 font-medium hover:underline cursor-pointer"
-                            >
-                              Remove
-                            </button>
-                          </div>
+                          {!isApproved && (
+                            <div className="flex items-center gap-2">
+                              <label className="text-xs text-primary font-medium hover:underline cursor-pointer">
+                                <span>Change Photo</span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handleImageUpload}
+                                  className="hidden"
+                                />
+                              </label>
+                              <span className="text-gray-300">|</span>
+                              <button
+                                type="button"
+                                onClick={() => updateTeacherField("image", "")}
+                                className="text-xs text-red-500 font-medium hover:underline cursor-pointer"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <label
                           className={`
                             h-11.5 border border-dashed border-gray-300 rounded-lg
-                            flex items-center justify-center gap-2 cursor-pointer
-                            hover:border-primary hover:bg-primary/5 transition-all duration-200
+                            flex items-center justify-center gap-2
+                            ${isApproved ? "cursor-default bg-gray-50" : "cursor-pointer hover:border-primary hover:bg-primary/5"}
+                            transition-all duration-200
                             ${uploadingImage ? "pointer-events-none opacity-60" : ""}
                           `}
                         >
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageUpload}
-                            className="hidden"
-                          />
+                          {!isApproved && (
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleImageUpload}
+                              className="hidden"
+                            />
+                          )}
                           {uploadingImage ? (
                             <>
                               <Loader2 className="w-4 h-4 animate-spin text-primary" />
@@ -1305,7 +1400,9 @@ export default function ApplicationsView() {
                             <>
                               <Upload className="w-4 h-4 text-gray-400" />
                               <span className="text-xs text-gray-500 font-medium">
-                                Upload Teacher Photo
+                                {isApproved
+                                  ? "No photo uploaded"
+                                  : "Upload Teacher Photo"}
                               </span>
                             </>
                           )}
@@ -1328,6 +1425,7 @@ export default function ApplicationsView() {
                   <div className="space-y-4">
                     <Select
                       label="Subject"
+                      disabled={isApproved}
                       value={(teacherForm.subject || "").toLowerCase()}
                       onChange={(e) => {
                         const newSubj = e.target.value.toLowerCase();
@@ -1368,18 +1466,20 @@ export default function ApplicationsView() {
                       ]}
                     />
 
-                    {/* Levels Chips */}
+                    {/* Levels Chips (Pre-selected from application, editable prior to approval) */}
                     <ChipSelect
-                      label="Levels"
+                      label="Levels (Pre-selected from submission)"
                       options={LEVELS}
+                      disabled={isApproved}
                       selected={teacherForm.levels}
                       onChange={(val) => updateTeacherField("levels", val)}
                     />
 
-                    {/* Exam Boards Chips */}
+                    {/* Exam Boards Chips (Pre-selected from application, editable prior to approval) */}
                     <ChipSelect
-                      label="Exam Boards"
+                      label="Exam Boards (Pre-selected from submission — click to add/remove)"
                       options={BOARDS}
+                      disabled={isApproved}
                       selected={teacherForm.boards}
                       onChange={(val) => updateTeacherField("boards", val)}
                     />
@@ -1395,6 +1495,7 @@ export default function ApplicationsView() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <Select
                         label="Experience"
+                        disabled={isApproved}
                         value={teacherForm.experience}
                         onChange={(e) =>
                           updateTeacherField("experience", e.target.value)
@@ -1419,6 +1520,7 @@ export default function ApplicationsView() {
 
                       <Select
                         label="Teacher Directory Availability"
+                        disabled={isApproved}
                         value={teacherForm.availabilityStatus}
                         onChange={(e) =>
                           updateTeacherField(
@@ -1443,6 +1545,7 @@ export default function ApplicationsView() {
                     <ChipSelect
                       label="Teacher Qualifications / Accreditations"
                       options={QUALIFICATIONS}
+                      disabled={isApproved}
                       selected={teacherForm.qualifications}
                       onChange={(val) =>
                         updateTeacherField("qualifications", val)
@@ -1459,6 +1562,7 @@ export default function ApplicationsView() {
                   <div className="space-y-4">
                     <Textarea
                       label="Teacher Bio"
+                      disabled={isApproved}
                       placeholder="Write or refine the bio for this teacher…"
                       value={teacherForm.bio}
                       onChange={(e) =>
@@ -1474,14 +1578,15 @@ export default function ApplicationsView() {
                       {teacherForm.highlights.map((h, idx) => (
                         <div key={idx} className="flex items-center gap-2">
                           <input
-                            className="flex-1 px-4 py-2.5 rounded-lg border border-gray-200 text-sm text-dark placeholder:text-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                            disabled={isApproved}
+                            className="flex-1 px-4 py-2.5 rounded-lg border border-gray-200 text-sm text-dark placeholder:text-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
                             placeholder={`Highlight ${idx + 1} (e.g. 5+ years CAIE examiner)`}
                             value={h}
                             onChange={(e) =>
                               updateHighlight(idx, e.target.value)
                             }
                           />
-                          {teacherForm.highlights.length > 1 && (
+                          {!isApproved && teacherForm.highlights.length > 1 && (
                             <button
                               type="button"
                               onClick={() => removeHighlight(idx)}
@@ -1492,13 +1597,15 @@ export default function ApplicationsView() {
                           )}
                         </div>
                       ))}
-                      <button
-                        type="button"
-                        onClick={addHighlight}
-                        className="text-sm text-primary font-medium hover:underline cursor-pointer mt-1 inline-block"
-                      >
-                        + Add Highlight
-                      </button>
+                      {!isApproved && (
+                        <button
+                          type="button"
+                          onClick={addHighlight}
+                          className="text-sm text-primary font-medium hover:underline cursor-pointer mt-1 inline-block"
+                        >
+                          + Add Highlight
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

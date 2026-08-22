@@ -82,7 +82,7 @@ export default function AdminDashboard() {
         />
 
         <main className="p-4 lg:p-8">
-          <ActiveViewComponent />
+          <ActiveViewComponent onNavigate={setActiveView} />
         </main>
       </div>
     </div>
