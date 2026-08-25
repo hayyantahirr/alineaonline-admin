@@ -19,6 +19,9 @@ import {
   FileText,
   Check,
   AlertCircle,
+  FileUp,
+  Sparkles,
+  FileType,
 } from "lucide-react";
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import { db } from "@/config/firebase";
@@ -102,9 +105,10 @@ function Toast({ message, type = "success", onClose }) {
       <div
         className={`
           flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-xl border
-          ${type === "success"
-            ? "bg-white border-success/20 text-success"
-            : "bg-white border-danger/20 text-danger"
+          ${
+            type === "success"
+              ? "bg-white border-success/20 text-success"
+              : "bg-white border-danger/20 text-danger"
           }
         `}
       >
@@ -114,7 +118,10 @@ function Toast({ message, type = "success", onClose }) {
           <AlertCircle className="w-5 h-5 shrink-0" />
         )}
         <p className="text-sm font-medium text-dark">{message}</p>
-        <button onClick={onClose} className="ml-2 cursor-pointer hover:opacity-60 transition-opacity">
+        <button
+          onClick={onClose}
+          className="ml-2 cursor-pointer hover:opacity-60 transition-opacity"
+        >
           <X className="w-4 h-4 text-gray-400" />
         </button>
       </div>
@@ -202,6 +209,13 @@ export default function BlogsView() {
   const [toast, setToast] = useState(null);
   const coverInputRef = useRef(null);
 
+  // ─── Import Document Modal States ───────────────────────────
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importError, setImportError] = useState("");
+  const importInputRef = useRef(null);
+
   // ─── Real-time Firestore Listener ───────────────────────────
   useEffect(() => {
     const blogsRef = collection(db, "blogs");
@@ -221,7 +235,7 @@ export default function BlogsView() {
         console.error("Firestore blogs listener error:", error);
         setLoading(false);
         showToast("Failed to load blogs", "error");
-      }
+      },
     );
 
     return () => unsubscribe();
@@ -276,6 +290,78 @@ export default function BlogsView() {
     setEditingBlog(null);
     setPreviewBlog(null);
     setFormData({ ...EMPTY_FORM });
+  };
+
+  // ─── Import Word (.docx) or PDF Document ─────────────────────
+  const handleFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    if (!["docx", "pdf"].includes(ext)) {
+      setImportError(
+        "Please select a .docx (Microsoft Word) or text-based .pdf file.",
+      );
+      setSelectedFile(null);
+      return;
+    }
+
+    setSelectedFile(file);
+    setImportError("");
+  };
+
+  const handleProcessImport = async () => {
+    if (!selectedFile) {
+      setImportError("Please select a file to import.");
+      return;
+    }
+
+    setIsImporting(true);
+    setImportError("");
+
+    try {
+      const fd = new FormData();
+      fd.append("file", selectedFile);
+
+      const res = await fetch("/api/blogs/import", {
+        method: "POST",
+        body: fd,
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || "Failed to process document.");
+      }
+
+      const imported = json.data;
+
+      // Pre-fill form with extracted data and Cloudinary images
+      setEditingBlog(null);
+      setFormData({
+        ...EMPTY_FORM,
+        title: imported.title || "",
+        slug: imported.slug || "",
+        content: imported.content || "",
+        excerpt: imported.excerpt || "",
+        readTime: imported.readTime || "4 min read",
+        featuredImage: imported.featuredImage || "",
+        status: "Draft",
+      });
+
+      setShowImportModal(false);
+      setSelectedFile(null);
+      setSubView("editor");
+
+      showToast(
+        `Imported successfully! ${imported.imagesCount} image(s) uploaded to Cloudinary.`,
+      );
+    } catch (err) {
+      console.error("Document import error:", err);
+      setImportError(err.message || "Failed to process document.");
+    } finally {
+      setIsImporting(false);
+      if (importInputRef.current) importInputRef.current.value = "";
+    }
   };
 
   // ─── Cover Image Upload ─────────────────────────────────────
@@ -340,14 +426,14 @@ export default function BlogsView() {
 
       if (!res.ok || !data.success) {
         throw new Error(
-          data.errors?.join(", ") || data.error || "Failed to save blog"
+          data.errors?.join(", ") || data.error || "Failed to save blog",
         );
       }
 
       showToast(
         editingBlog
           ? "Blog post updated successfully!"
-          : "Blog post created successfully!"
+          : "Blog post created successfully!",
       );
       backToList();
     } catch (error) {
@@ -387,7 +473,9 @@ export default function BlogsView() {
         throw new Error(data.error || "Failed to update status");
       }
 
-      showToast(`Post ${newStatus === "Published" ? "published" : "moved to drafts"}`);
+      showToast(
+        `Post ${newStatus === "Published" ? "published" : "moved to drafts"}`,
+      );
     } catch (error) {
       console.error("Toggle status error:", error);
       showToast(error.message, "error");
@@ -448,21 +536,26 @@ export default function BlogsView() {
             {row.featuredImage ? (
               <img
                 src={row.featuredImage}
-                alt=""
-                className="w-12 h-12 rounded-lg object-cover shrink-0 border border-gray-100"
+                alt={row.title}
+                className="w-12 h-12 rounded-lg object-cover border border-gray-100 shrink-0"
               />
             ) : (
               <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
-                <FileText className="w-5 h-5 text-gray-300" />
+                <FileText className="w-5 h-5 text-gray-400" />
               </div>
             )}
             <div className="min-w-0">
-              <p className="font-semibold text-dark text-sm truncate">
+              <p
+                onClick={() => openEdit(row)}
+                className="text-sm font-semibold text-dark truncate hover:text-primary cursor-pointer transition-colors"
+              >
                 {row.title}
               </p>
-              <p className="text-xs text-gray-400 truncate mt-0.5">
-                {row.excerpt || "No excerpt"}
-              </p>
+              {row.excerpt && (
+                <p className="text-xs text-gray-400 truncate mt-0.5">
+                  {row.excerpt}
+                </p>
+              )}
             </div>
           </div>
         ),
@@ -471,32 +564,25 @@ export default function BlogsView() {
         header: "Category",
         render: (row) =>
           row.category ? (
-            <span className="inline-flex items-center gap-1.5 text-sm">
-              <FolderOpen className="w-3.5 h-3.5 text-gray-400" />
-              {row.category}
-            </span>
+            <Badge variant="info">{row.category}</Badge>
           ) : (
-            <span className="text-sm text-gray-300">—</span>
+            <span className="text-xs text-gray-300">—</span>
           ),
       },
       {
         header: "Author",
         render: (row) => (
-          <div className="flex items-center gap-2">
-            <User className="w-3.5 h-3.5 text-gray-400" />
-            <span className="text-sm">{row.author || "—"}</span>
-          </div>
+          <span className="text-sm text-gray-600">
+            {row.author || "Anonymous"}
+          </span>
         ),
       },
       {
         header: "Date",
         render: (row) => (
-          <div className="flex items-center gap-2">
-            <Calendar className="w-3.5 h-3.5 text-gray-400" />
-            <span className="text-sm font-(family-name:--font-ibm-plex-mono)">
-              {formatDate(row.createdAt)}
-            </span>
-          </div>
+          <span className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono)">
+            {formatDate(row.createdAt)}
+          </span>
         ),
       },
       {
@@ -515,7 +601,9 @@ export default function BlogsView() {
                 <Loader2 className="w-3 h-3 animate-spin" />
               </span>
             ) : (
-              <Badge variant={row.status === "Published" ? "success" : "default"}>
+              <Badge
+                variant={row.status === "Published" ? "success" : "default"}
+              >
                 {row.status || "Draft"}
               </Badge>
             )}
@@ -575,9 +663,22 @@ export default function BlogsView() {
               className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
             />
           </div>
-          <Button icon={Plus} onClick={openCreate}>
-            New Post
-          </Button>
+          <div className="flex items-center gap-2.5 w-full sm:w-auto">
+            <Button
+              variant="outline"
+              icon={FileUp}
+              onClick={() => {
+                setImportError("");
+                setSelectedFile(null);
+                setShowImportModal(true);
+              }}
+            >
+              Import Word / PDF
+            </Button>
+            <Button icon={Plus} onClick={openCreate}>
+              New Post
+            </Button>
+          </div>
         </div>
 
         {/* Summary Cards */}
@@ -647,6 +748,132 @@ export default function BlogsView() {
           </Card>
         )}
 
+        {/* ── Document Import Modal ── */}
+        <Modal
+          isOpen={showImportModal}
+          onClose={() => {
+            if (!isImporting) {
+              setShowImportModal(false);
+              setSelectedFile(null);
+              setImportError("");
+            }
+          }}
+          title="Import Article from Word (.docx) or PDF"
+          size="md"
+          footer={
+            <div className="flex items-center justify-end gap-2 w-full">
+              <Button
+                variant="ghost"
+                onClick={() => setShowImportModal(false)}
+                disabled={isImporting}
+              >
+                Cancel
+              </Button>
+              <Button
+                icon={isImporting ? Loader2 : Sparkles}
+                onClick={handleProcessImport}
+                disabled={isImporting || !selectedFile}
+              >
+                {isImporting
+                  ? "Processing & Uploading to Cloudinary..."
+                  : "Import & Edit Blog"}
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            <p className="text-xs sm:text-sm text-gray-500 leading-relaxed">
+              Upload your article in <strong>.docx</strong> (Microsoft Word) or
+              text-extractable <strong>.pdf</strong> format. All formatted text,
+              headings, bullet lists, and embedded images will be extracted and
+              hosted on Cloudinary automatically.
+            </p>
+
+            {/* Dropzone */}
+            <div
+              onClick={() => !isImporting && importInputRef.current?.click()}
+              className={`
+                border-2 border-dashed rounded-2xl p-6 text-center transition-all cursor-pointer
+                ${
+                  selectedFile
+                    ? "border-primary bg-primary/5"
+                    : "border-gray-200 hover:border-primary bg-gray-50/50 hover:bg-primary/5"
+                }
+                ${isImporting ? "pointer-events-none opacity-60" : ""}
+              `}
+            >
+              <input
+                ref={importInputRef}
+                type="file"
+                accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.pdf,application/pdf"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+
+              {isImporting ? (
+                <div className="flex flex-col items-center gap-3 py-4">
+                  <Loader2 className="w-9 h-9 text-primary animate-spin" />
+                  <div>
+                    <p className="text-sm font-bold text-dark">
+                      Extracting Document Content...
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Parsing headings, paragraphs, and streaming inline images
+                      to Cloudinary CDN
+                    </p>
+                  </div>
+                </div>
+              ) : selectedFile ? (
+                <div className="flex items-center justify-between p-3 rounded-xl bg-white border border-primary/30 shadow-xs">
+                  <div className="flex items-center gap-3 min-w-0 text-left">
+                    <div className="p-2.5 rounded-lg bg-primary/10 text-dark shrink-0">
+                      <FileType className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-dark truncate">
+                        {selectedFile.name}
+                      </p>
+                      <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono)">
+                        {(selectedFile.size / 1024).toFixed(1)} KB • Ready to
+                        import
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedFile(null);
+                    }}
+                    className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-danger transition-colors cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2 py-4">
+                  <div className="p-3 rounded-2xl bg-white border border-gray-200 shadow-xs text-primary mb-1">
+                    <FileUp className="w-6 h-6 text-dark" />
+                  </div>
+                  <p className="text-sm font-semibold text-dark">
+                    Click to select or drag &amp; drop document
+                  </p>
+                  <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono)">
+                    Supports .docx and .pdf • Up to 25MB
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {importError && (
+              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{importError}</span>
+              </div>
+            )}
+          </div>
+        </Modal>
+
         {/* Delete Confirmation Modal */}
         <Modal
           isOpen={showDeleteModal}
@@ -714,11 +941,26 @@ export default function BlogsView() {
                 {editingBlog ? "Edit Post" : "Create New Post"}
               </h2>
               <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono) mt-0.5">
-                {editingBlog ? `Editing: ${editingBlog.title}` : "Write and publish a new blog post"}
+                {editingBlog
+                  ? `Editing: ${editingBlog.title}`
+                  : "Write and publish a new blog post"}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {!editingBlog && (
+              <Button
+                variant="outline"
+                icon={FileUp}
+                onClick={() => {
+                  setImportError("");
+                  setSelectedFile(null);
+                  setShowImportModal(true);
+                }}
+              >
+                Import Word / PDF
+              </Button>
+            )}
             <Button variant="ghost" onClick={backToList} disabled={isSaving}>
               Cancel
             </Button>
@@ -730,11 +972,43 @@ export default function BlogsView() {
               {isSaving
                 ? "Saving..."
                 : editingBlog
-                ? "Save Changes"
-                : "Create Post"}
+                  ? "Save Changes"
+                  : "Create Post"}
             </Button>
           </div>
         </div>
+
+        {/* Quick import banner for new posts */}
+        {!editingBlog && !formData.content && (
+          <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-amber-100 text-amber-800 shrink-0">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xs sm:text-sm font-bold text-dark">
+                  Have an article written in Word (.docx) or PDF?
+                </p>
+                <p className="text-xs text-gray-600 mt-0.5">
+                  Import your document to automatically extract headings,
+                  paragraphs, and upload all embedded images to Cloudinary.
+                </p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              variant="primary"
+              icon={FileUp}
+              onClick={() => {
+                setImportError("");
+                setSelectedFile(null);
+                setShowImportModal(true);
+              }}
+            >
+              Import Document
+            </Button>
+          </div>
+        )}
 
         {/* Form */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -759,7 +1033,10 @@ export default function BlogsView() {
                   placeholder="Brief summary of the post (displayed in previews)..."
                   value={formData.excerpt}
                   onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, excerpt: e.target.value }))
+                    setFormData((prev) => ({
+                      ...prev,
+                      excerpt: e.target.value,
+                    }))
                   }
                 />
               </div>
@@ -794,8 +1071,7 @@ export default function BlogsView() {
                     onClick={() =>
                       setFormData((prev) => ({
                         ...prev,
-                        status:
-                          prev.status === "Draft" ? "Published" : "Draft",
+                        status: prev.status === "Draft" ? "Published" : "Draft",
                       }))
                     }
                     className={`
@@ -830,7 +1106,10 @@ export default function BlogsView() {
                     />
                     <button
                       onClick={() =>
-                        setFormData((prev) => ({ ...prev, featuredImage: "" }))
+                        setFormData((prev) => ({
+                          ...prev,
+                          featuredImage: "",
+                        }))
                       }
                       className="absolute top-2 right-2 p-1.5 rounded-lg bg-dark/70 text-white hover:bg-danger transition-colors cursor-pointer opacity-0 group-hover:opacity-100"
                     >
@@ -884,7 +1163,9 @@ export default function BlogsView() {
 
                 {/* Category */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium text-dark">Category</label>
+                  <label className="text-sm font-medium text-dark">
+                    Category
+                  </label>
                   <select
                     value={formData.category}
                     onChange={(e) =>
@@ -942,6 +1223,132 @@ export default function BlogsView() {
           </div>
         </div>
 
+        {/* ── Document Import Modal (Also available from editor) ── */}
+        <Modal
+          isOpen={showImportModal}
+          onClose={() => {
+            if (!isImporting) {
+              setShowImportModal(false);
+              setSelectedFile(null);
+              setImportError("");
+            }
+          }}
+          title="Import Article from Word (.docx) or PDF"
+          size="md"
+          footer={
+            <div className="flex items-center justify-end gap-2 w-full">
+              <Button
+                variant="ghost"
+                onClick={() => setShowImportModal(false)}
+                disabled={isImporting}
+              >
+                Cancel
+              </Button>
+              <Button
+                icon={isImporting ? Loader2 : Sparkles}
+                onClick={handleProcessImport}
+                disabled={isImporting || !selectedFile}
+              >
+                {isImporting
+                  ? "Processing & Uploading to Cloudinary..."
+                  : "Import & Edit Blog"}
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            <p className="text-xs sm:text-sm text-gray-500 leading-relaxed">
+              Upload your article in <strong>.docx</strong> (Microsoft Word) or
+              text-extractable <strong>.pdf</strong> format. All formatted text,
+              headings, bullet lists, and embedded images will be extracted and
+              hosted on Cloudinary automatically.
+            </p>
+
+            {/* Dropzone */}
+            <div
+              onClick={() => !isImporting && importInputRef.current?.click()}
+              className={`
+                border-2 border-dashed rounded-2xl p-6 text-center transition-all cursor-pointer
+                ${
+                  selectedFile
+                    ? "border-primary bg-primary/5"
+                    : "border-gray-200 hover:border-primary bg-gray-50/50 hover:bg-primary/5"
+                }
+                ${isImporting ? "pointer-events-none opacity-60" : ""}
+              `}
+            >
+              <input
+                ref={importInputRef}
+                type="file"
+                accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.pdf,application/pdf"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+
+              {isImporting ? (
+                <div className="flex flex-col items-center gap-3 py-4">
+                  <Loader2 className="w-9 h-9 text-primary animate-spin" />
+                  <div>
+                    <p className="text-sm font-bold text-dark">
+                      Extracting Document Content...
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Parsing headings, paragraphs, and streaming inline images
+                      to Cloudinary CDN
+                    </p>
+                  </div>
+                </div>
+              ) : selectedFile ? (
+                <div className="flex items-center justify-between p-3 rounded-xl bg-white border border-primary/30 shadow-xs">
+                  <div className="flex items-center gap-3 min-w-0 text-left">
+                    <div className="p-2.5 rounded-lg bg-primary/10 text-dark shrink-0">
+                      <FileType className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-dark truncate">
+                        {selectedFile.name}
+                      </p>
+                      <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono)">
+                        {(selectedFile.size / 1024).toFixed(1)} KB • Ready to
+                        import
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedFile(null);
+                    }}
+                    className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-danger transition-colors cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2 py-4">
+                  <div className="p-3 rounded-2xl bg-white border border-gray-200 shadow-xs text-primary mb-1">
+                    <FileUp className="w-6 h-6 text-dark" />
+                  </div>
+                  <p className="text-sm font-semibold text-dark">
+                    Click to select or drag &amp; drop document
+                  </p>
+                  <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono)">
+                    Supports .docx and .pdf • Up to 25MB
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {importError && (
+              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{importError}</span>
+              </div>
+            )}
+          </div>
+        </Modal>
+
         {/* Toast */}
         {toast && (
           <Toast
@@ -979,7 +1386,11 @@ export default function BlogsView() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant={previewBlog.status === "Published" ? "success" : "default"}>
+            <Badge
+              variant={
+                previewBlog.status === "Published" ? "success" : "default"
+              }
+            >
               {previewBlog.status || "Draft"}
             </Badge>
             <Button variant="ghost" onClick={() => openEdit(previewBlog)}>
@@ -1060,7 +1471,9 @@ export default function BlogsView() {
 
             {/* Content Body */}
             <div className="prose prose-lg max-w-none prose-headings:font-(family-name:--font-archivo-black) prose-headings:text-dark prose-p:text-gray-600 prose-a:text-info prose-img:rounded-xl prose-blockquote:border-l-primary">
-              {previewBlog.content ? parse(previewBlog.content) : (
+              {previewBlog.content ? (
+                parse(previewBlog.content)
+              ) : (
                 <p className="text-gray-400 italic">No content yet.</p>
               )}
             </div>
