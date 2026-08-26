@@ -8,9 +8,7 @@ import {
   XCircle,
   AlertCircle,
   Trash2,
-  Eye,
-  Filter,
-  Mail,
+  Eye, Mail,
   Phone,
   MessageCircle,
   User,
@@ -18,7 +16,7 @@ import {
   BookOpen,
   Sparkles,
   Loader2,
-  Calendar,
+  Calendar
 } from "lucide-react";
 import {
   collection,

@@ -8,15 +8,13 @@ import {
   Search,
   CalendarDays,
   ClipboardList,
-  MessageSquare,
-  Check,
-  CheckCheck,
+  MessageSquare, CheckCheck,
   Volume2,
   VolumeX,
   ExternalLink,
   X,
   Laptop,
-  Trash2,
+  Trash2
 } from "lucide-react";
 
 const viewTitles = {

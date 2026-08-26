@@ -4,13 +4,9 @@ import { useState, useEffect } from "react";
 import {
   Mail,
   MailOpen,
-  Circle,
-  Phone,
-  MessageCircle,
-  Trash2,
+  Circle, Trash2,
   User,
-  Calendar,
-  Sparkles,
+  Calendar
 } from "lucide-react";
 import {
   collection,
@@ -22,7 +18,6 @@ import {
 import { db } from "@/config/firebase";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
-import Badge from "@/components/ui/Badge";
 import Modal from "@/components/ui/Modal";
 
 export default function ContactMessagesView() {
