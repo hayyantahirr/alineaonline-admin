@@ -11,7 +11,6 @@ import {
   Volume2,
   VolumeX,
   Bell,
-  Sparkles,
 } from "lucide-react";
 
 const typeConfig = {
@@ -46,22 +45,24 @@ export default function NotificationToast({ onNavigate }) {
       return;
     }
 
+    setProgress(100);
     const duration = 7000; // 7 seconds
-    const intervalTime = 50;
-    const decrement = (intervalTime / duration) * 100;
+    const startTime = Date.now();
 
-    const timer = setInterval(() => {
-      setProgress((prev) => {
-        if (prev <= 0) {
-          clearInterval(timer);
-          dismissToast();
-          return 0;
-        }
-        return prev - decrement;
-      });
-    }, intervalTime);
+    const progressInterval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, 100 - (elapsed / duration) * 100);
+      setProgress(remaining);
+    }, 50);
 
-    return () => clearInterval(timer);
+    const dismissTimeout = setTimeout(() => {
+      dismissToast();
+    }, duration);
+
+    return () => {
+      clearInterval(progressInterval);
+      clearTimeout(dismissTimeout);
+    };
   }, [activeToast, dismissToast]);
 
   if (!activeToast) return null;

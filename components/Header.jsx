@@ -13,10 +13,10 @@ import {
   CheckCheck,
   Volume2,
   VolumeX,
-  Sparkles,
   ExternalLink,
   X,
   Laptop,
+  Trash2,
 } from "lucide-react";
 
 const viewTitles = {
@@ -81,6 +81,9 @@ export default function Header({ activeView, onMenuToggle, onNavigate }) {
     requestDesktopPermission,
     markAsRead,
     markAllAsRead,
+    clearNotification,
+    clearCategoryNotifications,
+    clearAllNotifications,
     readIds,
   } = useNotifications();
 
@@ -113,6 +116,27 @@ export default function Header({ activeView, onMenuToggle, onNavigate }) {
       onNavigate(item.targetView);
     }
     setIsDropdownOpen(false);
+  };
+
+  const handleClearCurrent = (e) => {
+    e.stopPropagation();
+    if (filterType === "all") {
+      clearAllNotifications();
+    } else {
+      clearCategoryNotifications(filterType);
+    }
+  };
+
+  const handleSingleClear = (e, id) => {
+    e.stopPropagation();
+    clearNotification(id);
+  };
+
+  const categoryLabelMap = {
+    all: "All",
+    booking: "Bookings",
+    application: "Applications",
+    message: "Messages",
   };
 
   return (
@@ -189,7 +213,7 @@ export default function Header({ activeView, onMenuToggle, onNavigate }) {
 
             {/* Dropdown Panel */}
             {isDropdownOpen && (
-              <div className="absolute right-0 mt-2.5 w-[360px] sm:w-[420px] bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50 animate-scale-in">
+              <div className="absolute right-0 mt-2.5 w-90 sm:w-105 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50 animate-scale-in">
                 {/* Dropdown Header */}
                 <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
                   <div className="flex items-center gap-2">
@@ -218,14 +242,32 @@ export default function Header({ activeView, onMenuToggle, onNavigate }) {
                         <VolumeX className="w-4 h-4 text-gray-400" />
                       )}
                     </button>
+
                     {unreadCount > 0 && (
                       <button
                         type="button"
                         onClick={markAllAsRead}
-                        className="text-xs font-semibold text-primary-hover hover:underline cursor-pointer flex items-center gap-1 pl-1"
+                        className="text-xs font-semibold text-gray-600 hover:text-dark hover:underline cursor-pointer flex items-center gap-1 px-1.5 py-1 rounded-md"
+                        title="Mark all as read"
                       >
                         <CheckCheck className="w-3.5 h-3.5" />
-                        Mark all read
+                        <span>Mark read</span>
+                      </button>
+                    )}
+
+                    {filteredNotifications.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleClearCurrent}
+                        className="text-xs font-semibold text-danger hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded-md transition-colors cursor-pointer flex items-center gap-1"
+                        title={`Clear ${categoryLabelMap[filterType]} notifications`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>
+                          {filterType === "all"
+                            ? "Clear All"
+                            : `Clear ${categoryLabelMap[filterType]}`}
+                        </span>
                       </button>
                     )}
                   </div>
@@ -323,12 +365,12 @@ export default function Header({ activeView, onMenuToggle, onNavigate }) {
                 </div>
 
                 {/* Notifications List */}
-                <div className="max-h-[380px] overflow-y-auto divide-y divide-gray-50">
+                <div className="max-h-95 overflow-y-auto divide-y divide-gray-50">
                   {filteredNotifications.length === 0 ? (
                     <div className="py-12 text-center text-gray-400">
                       <Bell className="w-8 h-8 mx-auto mb-2 opacity-30 text-gray-400" />
                       <p className="text-xs font-medium text-gray-500">
-                        No notifications found.
+                        No notifications in this section.
                       </p>
                     </div>
                   ) : (
@@ -376,7 +418,7 @@ export default function Header({ activeView, onMenuToggle, onNavigate }) {
                               {item.description}
                             </p>
 
-                            <div className="flex items-center gap-2 mt-1.5">
+                            <div className="flex items-center justify-between mt-1.5">
                               <span
                                 className={`
                                   text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md
@@ -391,9 +433,20 @@ export default function Header({ activeView, onMenuToggle, onNavigate }) {
                               >
                                 {item.type}
                               </span>
-                              <span className="text-[11px] text-primary-hover font-medium flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                View details <ExternalLink className="w-2.5 h-2.5" />
-                              </span>
+
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[11px] text-primary-hover font-medium flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  View details <ExternalLink className="w-2.5 h-2.5" />
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleSingleClear(e, item.id)}
+                                  title="Dismiss notification"
+                                  className="p-1 rounded-md text-gray-400 hover:text-danger hover:bg-gray-100 opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
                             </div>
                           </div>
 
@@ -408,10 +461,19 @@ export default function Header({ activeView, onMenuToggle, onNavigate }) {
                 </div>
 
                 {/* Dropdown Footer */}
-                <div className="p-3 bg-gray-50 border-t border-gray-100 text-center">
+                <div className="p-3 bg-gray-50 border-t border-gray-100 flex items-center justify-between px-4">
                   <p className="text-[11px] text-gray-400 font-(family-name:--font-ibm-plex-mono)">
                     Real-time updates active
                   </p>
+                  {notifications.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={clearAllNotifications}
+                      className="text-[11px] text-gray-400 hover:text-danger font-medium transition-colors cursor-pointer"
+                    >
+                      Clear all history
+                    </button>
+                  )}
                 </div>
               </div>
             )}

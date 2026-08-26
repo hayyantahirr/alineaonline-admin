@@ -10,6 +10,7 @@ import {
   Trash2,
   User,
   Calendar,
+  Sparkles,
 } from "lucide-react";
 import {
   collection,
@@ -199,7 +200,7 @@ export default function ContactMessagesView() {
             key={tab}
             onClick={() => setFilter(tab)}
             className={`
-              px-4 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer
+              px-4 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer flex items-center gap-2
               ${
                 filter === tab
                   ? "bg-dark text-white shadow-sm"
@@ -207,9 +208,10 @@ export default function ContactMessagesView() {
               }
             `}
           >
-            {tab}
+            <span>{tab}</span>
             {tab === "Unread" && unreadCount > 0 && (
-              <span className="ml-2 px-1.5 py-0.5 rounded-full bg-primary text-dark text-xs font-semibold">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary text-dark text-xs font-bold font-(family-name:--font-ibm-plex-mono) animate-pulse">
+                <span className="w-1.5 h-1.5 rounded-full bg-dark" />
                 {unreadCount}
               </span>
             )}
@@ -225,15 +227,22 @@ export default function ContactMessagesView() {
               key={msg.id}
               onClick={() => openMessage(msg)}
               className={`
-                w-full flex items-start gap-4 p-4 text-left
-                hover:bg-primary/5 transition-colors cursor-pointer
-                ${!msg.isRead ? "bg-info-bg/30" : ""}
+                w-full flex items-start gap-4 p-4 text-left relative
+                hover:bg-primary/5 transition-all cursor-pointer
+                ${
+                  !msg.isRead
+                    ? "bg-blue-50/40 border-l-4 border-l-blue-500"
+                    : "border-l-4 border-l-transparent"
+                }
               `}
             >
               {/* Read indicator */}
               <div className="pt-1.5 shrink-0">
                 {!msg.isRead ? (
-                  <Circle className="w-2.5 h-2.5 fill-info text-info" />
+                  <span className="relative flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-600" />
+                  </span>
                 ) : (
                   <Circle className="w-2.5 h-2.5 text-gray-200" />
                 )}
@@ -242,27 +251,39 @@ export default function ContactMessagesView() {
               {/* Content */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2 mb-1">
-                  <p
-                    className={`text-sm truncate ${
-                      !msg.isRead
-                        ? "font-semibold text-dark"
-                        : "font-medium text-gray-600"
-                    }`}
-                  >
-                    {msg.displayName}
-                    {msg.studentName && msg.parentName && (
-                      <span className="text-xs text-gray-400 font-normal ml-2">
-                        (Parent: {msg.parentName})
+                  <div className="flex items-center gap-2 min-w-0">
+                    <p
+                      className={`text-sm truncate ${
+                        !msg.isRead
+                          ? "font-bold text-dark"
+                          : "font-medium text-gray-600"
+                      }`}
+                    >
+                      {msg.displayName}
+                      {msg.studentName && msg.parentName && (
+                        <span className="text-xs text-gray-400 font-normal ml-2">
+                          (Parent: {msg.parentName})
+                        </span>
+                      )}
+                    </p>
+
+                    {/* Unread Bubble Indicator */}
+                    {!msg.isRead && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-blue-100 text-blue-900 border border-blue-300 shadow-xs shrink-0 animate-pulse">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+                        NEW INQUIRY
                       </span>
                     )}
-                  </p>
+                  </div>
+
                   <span className="text-xs text-gray-400 shrink-0 font-(family-name:--font-ibm-plex-mono)">
                     {msg.formattedDate}
                   </span>
                 </div>
+
                 <p
                   className={`text-sm truncate ${
-                    !msg.isRead ? "text-dark font-medium" : "text-gray-500"
+                    !msg.isRead ? "text-dark font-semibold" : "text-gray-500"
                   }`}
                 >
                   {msg.subject || "No Subject"}
@@ -298,109 +319,77 @@ export default function ContactMessagesView() {
             >
               Delete
             </Button>
-            {selectedMessage?.phone && (
-              <>
-                <Button
-                  variant="outline"
-                  icon={Phone}
-                  onClick={() =>
-                    window.open(`tel:${selectedMessage.phone}`, "_self")
-                  }
-                >
-                  Call
-                </Button>
-                <Button
-                  variant="outline"
-                  icon={MessageCircle}
-                  onClick={() =>
-                    window.open(
-                      `https://wa.me/${selectedMessage.phone.replace(
-                        /[^0-9]/g,
-                        "",
-                      )}`,
-                      "_blank",
-                    )
-                  }
-                >
-                  WhatsApp
-                </Button>
-              </>
-            )}
-            {selectedMessage?.email && (
-              <Button
-                icon={Mail}
-                onClick={() =>
-                  window.open(`mailto:${selectedMessage.email}`, "_blank")
-                }
-              >
-                Email
-              </Button>
-            )}
+            <Button onClick={() => setShowMessageModal(false)}>Close</Button>
           </div>
         }
       >
         {selectedMessage && (
-          <div className="space-y-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-dark">
-                  {selectedMessage.subject || "No Subject"}
-                </h3>
-                <div className="space-y-1 mt-2 text-sm text-gray-600">
-                  {selectedMessage.studentName && (
-                    <p className="flex items-center gap-1.5">
-                      <User className="w-4 h-4 text-gray-400" />
-                      <span>Student:</span>
-                      <span className="font-medium text-dark">
-                        {selectedMessage.studentName}
-                      </span>
-                    </p>
-                  )}
-                  {selectedMessage.parentName && (
-                    <p className="flex items-center gap-1.5">
-                      <User className="w-4 h-4 text-gray-400" />
-                      <span>Parent:</span>
-                      <span className="font-medium text-dark">
-                        {selectedMessage.parentName}
-                      </span>
-                    </p>
-                  )}
-                  {!selectedMessage.studentName &&
-                    !selectedMessage.parentName &&
-                    selectedMessage.name && (
-                      <p className="flex items-center gap-1.5">
-                        <User className="w-4 h-4 text-gray-400" />
-                        <span>From:</span>
-                        <span className="font-medium text-dark">
-                          {selectedMessage.name}
-                        </span>
-                      </p>
-                    )}
-                  {selectedMessage.email && (
-                    <p className="text-xs text-gray-500">
-                      Email: {selectedMessage.email}
-                    </p>
-                  )}
-                  {selectedMessage.phone && (
-                    <p className="text-xs text-gray-500">
-                      Phone: {selectedMessage.phone}
-                    </p>
+          <div className="space-y-6">
+            {/* Header info */}
+            <div className="p-4 rounded-xl bg-gray-50 border border-gray-100 flex flex-col sm:flex-row justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <User className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm font-semibold text-dark">
+                    {selectedMessage.displayName}
+                  </span>
+                  {!selectedMessage.isRead && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-900 border border-blue-300">
+                      New
+                    </span>
                   )}
                 </div>
+                {selectedMessage.studentName && selectedMessage.parentName && (
+                  <p className="text-xs text-gray-500 ml-6">
+                    Student: {selectedMessage.studentName} | Parent:{" "}
+                    {selectedMessage.parentName}
+                  </p>
+                )}
+                {selectedMessage.email && (
+                  <p className="text-xs text-gray-500 ml-6">
+                    <a
+                      href={`mailto:${selectedMessage.email}`}
+                      className="text-primary-hover hover:underline"
+                    >
+                      {selectedMessage.email}
+                    </a>
+                  </p>
+                )}
+                {selectedMessage.phone && (
+                  <p className="text-xs text-gray-500 ml-6">
+                    <a
+                      href={`tel:${selectedMessage.phone}`}
+                      className="text-primary-hover hover:underline"
+                    >
+                      {selectedMessage.phone}
+                    </a>
+                  </p>
+                )}
               </div>
-              <Badge variant={selectedMessage.isRead ? "default" : "info"}>
-                {selectedMessage.isRead ? "Read" : "Unread"}
-              </Badge>
+              <div className="flex items-center gap-2 text-xs text-gray-400 self-start font-(family-name:--font-ibm-plex-mono)">
+                <Calendar className="w-4 h-4" />
+                <span>{selectedMessage.formattedDate}</span>
+              </div>
             </div>
 
-            <div className="pt-4 border-t border-gray-100">
-              <p className="text-xs text-gray-400 font-(family-name:--font-ibm-plex-mono) mb-2 flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5" />
-                {selectedMessage.formattedDate}
+            {/* Subject */}
+            <div>
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider font-(family-name:--font-ibm-plex-mono)">
+                Subject
+              </label>
+              <p className="text-sm font-bold text-dark mt-1">
+                {selectedMessage.subject || "No Subject"}
               </p>
-              <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line bg-gray-50/50 p-4 rounded-xl border border-gray-100">
+            </div>
+
+            {/* Message Body */}
+            <div>
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider font-(family-name:--font-ibm-plex-mono)">
+                Message Content
+              </label>
+              <div className="mt-1 p-4 rounded-xl bg-gray-50/50 border border-gray-100 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
                 {selectedMessage.message}
-              </p>
+              </div>
             </div>
           </div>
         )}

@@ -26,7 +26,11 @@ const NotificationContext = createContext({
   requestDesktopPermission: async () => {},
   markAsRead: (id) => {},
   markAllAsRead: () => {},
+  clearNotification: (id) => {},
+  clearCategoryNotifications: (type) => {},
+  clearAllNotifications: () => {},
   dismissToast: () => {},
+  readIds: new Set(),
 });
 
 // ─── Synthetic Audio Chime using Web Audio API ──────────────────
@@ -79,8 +83,9 @@ function playNotificationChime() {
 }
 
 export function NotificationProvider({ children }) {
-  const [notifications, setNotifications] = useState([]);
+  const [allRawNotifications, setAllRawNotifications] = useState([]);
   const [readIds, setReadIds] = useState(new Set());
+  const [clearedIds, setClearedIds] = useState(new Set());
   const [activeToast, setActiveToast] = useState(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [desktopPermission, setDesktopPermission] = useState("default");
@@ -95,7 +100,7 @@ export function NotificationProvider({ children }) {
   const soundEnabledRef = useRef(soundEnabled);
   soundEnabledRef.current = soundEnabled;
 
-  // Initialize sound preference & desktop permission from browser
+  // Initialize sound preference, read IDs, cleared IDs & desktop permission from browser
   useEffect(() => {
     try {
       const savedSound = localStorage.getItem("alinea_admin_sound");
@@ -106,6 +111,10 @@ export function NotificationProvider({ children }) {
       if (savedRead) {
         setReadIds(new Set(JSON.parse(savedRead)));
       }
+      const savedCleared = localStorage.getItem("alinea_admin_cleared_notifs");
+      if (savedCleared) {
+        setClearedIds(new Set(JSON.parse(savedCleared)));
+      }
       if (typeof window !== "undefined" && "Notification" in window) {
         setDesktopPermission(Notification.permission);
       }
@@ -115,6 +124,24 @@ export function NotificationProvider({ children }) {
   }, []);
 
   const triggerAlert = useCallback((item) => {
+    // If user previously cleared this item, un-clear it for the fresh incoming alert
+    setClearedIds((prev) => {
+      if (prev.has(item.id)) {
+        const next = new Set(prev);
+        next.delete(item.id);
+        try {
+          localStorage.setItem(
+            "alinea_admin_cleared_notifs",
+            JSON.stringify(Array.from(next)),
+          );
+        } catch (e) {
+          console.warn(e);
+        }
+        return next;
+      }
+      return prev;
+    });
+
     // 1. Set floating toast banner
     setActiveToast(item);
 
@@ -159,7 +186,7 @@ export function NotificationProvider({ children }) {
         const timeB = b.rawTimestamp?.seconds || 0;
         return timeB - timeA;
       });
-      setNotifications(combined);
+      setAllRawNotifications(combined);
     };
 
     // 1. Applications Listener
@@ -169,7 +196,8 @@ export function NotificationProvider({ children }) {
         snapshot.docChanges().forEach((change) => {
           if (change.type === "added") {
             const data = change.doc.data();
-            const applicantName = data.fullName || data.name || "New Applicant";
+            const applicantName =
+              data.fullName || data.name || "New Applicant";
             const subject = data.subject || "Teacher Application";
             triggerAlert({
               id: `app_${change.doc.id}`,
@@ -239,7 +267,8 @@ export function NotificationProvider({ children }) {
         const data = d.data();
         const student = data.studentName || data.parentName || "Student";
         const subject = data.subject || "Consultation";
-        const isUnread = (data.status || "pending").toLowerCase() === "pending";
+        const isUnread =
+          (data.status || "pending").toLowerCase() === "pending";
 
         return {
           id: `booking_${d.id}`,
@@ -286,7 +315,8 @@ export function NotificationProvider({ children }) {
         const data = d.data();
         const sender = data.name || data.fullName || "Visitor";
         const isUnread =
-          data.read === false || (data.status || "").toLowerCase() === "unread";
+          data.read === false ||
+          (data.status || "").toLowerCase() === "unread";
 
         return {
           id: `msg_${d.id}`,
@@ -312,10 +342,16 @@ export function NotificationProvider({ children }) {
     };
   }, [triggerAlert]);
 
+  // ── Filter Out Cleared Notifications ──
+  const notifications = allRawNotifications.filter(
+    (n) => !clearedIds.has(n.id),
+  );
+
   // ── Unread Counts Calculations ──
   const unreadByCategory = {
     applications: notifications.filter(
-      (n) => n.type === "application" && !readIds.has(n.id) && n.isItemUnread,
+      (n) =>
+        n.type === "application" && !readIds.has(n.id) && n.isItemUnread,
     ).length,
     bookings: notifications.filter(
       (n) => n.type === "booking" && !readIds.has(n.id) && n.isItemUnread,
@@ -371,7 +407,7 @@ export function NotificationProvider({ children }) {
   };
 
   const markAllAsRead = () => {
-    const allIds = new Set(notifications.map((n) => n.id));
+    const allIds = new Set(allRawNotifications.map((n) => n.id));
     setReadIds(allIds);
     try {
       localStorage.setItem(
@@ -383,9 +419,49 @@ export function NotificationProvider({ children }) {
     }
   };
 
-  const dismissToast = () => {
-    setActiveToast(null);
+  // ── Clear Functions ──
+  const clearNotification = (id) => {
+    setClearedIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      try {
+        localStorage.setItem(
+          "alinea_admin_cleared_notifs",
+          JSON.stringify(Array.from(next)),
+        );
+      } catch (e) {
+        console.warn(e);
+      }
+      return next;
+    });
   };
+
+  const clearCategoryNotifications = (type) => {
+    setClearedIds((prev) => {
+      const next = new Set(prev);
+      allRawNotifications
+        .filter((n) => (type === "all" ? true : n.type === type))
+        .forEach((n) => next.add(n.id));
+
+      try {
+        localStorage.setItem(
+          "alinea_admin_cleared_notifs",
+          JSON.stringify(Array.from(next)),
+        );
+      } catch (e) {
+        console.warn(e);
+      }
+      return next;
+    });
+  };
+
+  const clearAllNotifications = () => {
+    clearCategoryNotifications("all");
+  };
+
+  const dismissToast = useCallback(() => {
+    setActiveToast(null);
+  }, []);
 
   return (
     <NotificationContext.Provider
@@ -400,6 +476,9 @@ export function NotificationProvider({ children }) {
         requestDesktopPermission,
         markAsRead,
         markAllAsRead,
+        clearNotification,
+        clearCategoryNotifications,
+        clearAllNotifications,
         dismissToast,
         readIds,
       }}

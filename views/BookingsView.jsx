@@ -244,7 +244,15 @@ export default function BookingsView() {
       header: "Student Info",
       render: (row) => (
         <div className="min-w-40">
-          <p className="font-semibold text-dark">{row.studentName}</p>
+          <div className="flex items-center gap-2">
+            <p className="font-semibold text-dark">{row.studentName}</p>
+            {row.status === "Pending" && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 shadow-xs animate-pulse shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                NEW
+              </span>
+            )}
+          </div>
           <p className="text-xs text-gray-500 mt-0.5">
             <span className="text-gray-400">P:</span> {row.parentName}
           </p>

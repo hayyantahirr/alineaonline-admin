@@ -694,8 +694,10 @@ export default function ApplicationsView({ onNavigate }) {
             {tab}
             {tab !== "All" && (
               <span
-                className={`ml-2 text-xs px-1.5 py-0.5 rounded-full ${
-                  filterStatus === tab
+                className={`ml-2 text-xs px-2 py-0.5 rounded-full font-bold ${
+                  tab === "Pending" && applications.filter((a) => a.status === "Pending").length > 0
+                    ? "bg-primary text-dark animate-pulse"
+                    : filterStatus === tab
                     ? "bg-white/20 text-white"
                     : "bg-gray-100 text-gray-600"
                 }`}
@@ -721,7 +723,9 @@ export default function ApplicationsView({ onNavigate }) {
           {filtered.map((app) => (
             <Card
               key={app.id}
-              className="hover:border-primary/40 transition-all duration-200 flex flex-col justify-between"
+              className={`hover:border-primary/40 transition-all duration-200 flex flex-col justify-between ${
+                app.status === "Pending" ? "border-l-4 border-l-amber-400" : ""
+              }`}
             >
               <div className="space-y-4">
                 {/* Header */}
@@ -741,9 +745,17 @@ export default function ApplicationsView({ onNavigate }) {
                       </div>
                     )}
                     <div className="min-w-0">
-                      <h3 className="text-sm font-semibold text-dark truncate">
-                        {app.name}
-                      </h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-semibold text-dark truncate">
+                          {app.name}
+                        </h3>
+                        {app.status === "Pending" && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 shadow-xs shrink-0 animate-pulse">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                            NEW
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-gray-400 truncate">
                         {app.email}
                       </p>
