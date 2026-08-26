@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import LoginPage from "@/components/LoginPage";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
+import NotificationToast from "@/components/NotificationToast";
 import DashboardView from "@/views/DashboardView";
 import TeachersView from "@/views/TeachersView";
 import ApplicationsView from "@/views/ApplicationsView";
@@ -60,7 +61,10 @@ export default function AdminDashboard() {
   const ActiveViewComponent = views[activeView] || DashboardView;
 
   return (
-    <div className="min-h-screen bg-canvas">
+    <div className="min-h-screen bg-canvas relative">
+      {/* Floating Real-time Notification Alert Toast */}
+      <NotificationToast onNavigate={setActiveView} />
+
       <Sidebar
         activeView={activeView}
         onNavigate={setActiveView}
@@ -79,6 +83,7 @@ export default function AdminDashboard() {
         <Header
           activeView={activeView}
           onMenuToggle={() => setSidebarOpen(true)}
+          onNavigate={setActiveView}
         />
 
         <main className="p-4 lg:p-8">

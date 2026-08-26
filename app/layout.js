@@ -1,6 +1,7 @@
 import { Archivo_Black, Work_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
+import { NotificationProvider } from "@/context/NotificationContext";
 
 const archivoBlack = Archivo_Black({
   weight: "400",
@@ -32,7 +33,9 @@ export default function RootLayout({ children }) {
       className={`${archivoBlack.variable} ${workSans.variable} ${ibmPlexMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <NotificationProvider>{children}</NotificationProvider>
+        </AuthProvider>
       </body>
     </html>
   );

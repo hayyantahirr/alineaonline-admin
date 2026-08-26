@@ -14,14 +14,12 @@ import {
   X,
   Loader2,
   Clock,
-  Tag,
-  FolderOpen,
-  FileText,
+  Tag, FileText,
   Check,
   AlertCircle,
   FileUp,
   Sparkles,
-  FileType,
+  FileType
 } from "lucide-react";
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import { db } from "@/config/firebase";

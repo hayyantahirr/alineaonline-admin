@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-
+import { useNotifications } from "@/context/NotificationContext";
 import {
   LayoutDashboard,
   GraduationCap,
@@ -20,10 +20,25 @@ import {
 const navItems = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { key: "teachers", label: "Teachers", icon: GraduationCap },
-  { key: "applications", label: "Applications", icon: ClipboardList },
-  { key: "bookings", label: "Bookings", icon: CalendarDays },
+  {
+    key: "applications",
+    label: "Applications",
+    icon: ClipboardList,
+    badgeKey: "applications",
+  },
+  {
+    key: "bookings",
+    label: "Bookings",
+    icon: CalendarDays,
+    badgeKey: "bookings",
+  },
   { key: "resources", label: "Resources", icon: FolderOpen },
-  { key: "messages", label: "Messages", icon: MessageSquare },
+  {
+    key: "messages",
+    label: "Messages",
+    icon: MessageSquare,
+    badgeKey: "messages",
+  },
   { key: "subjects", label: "Subjects", icon: BookOpen },
   { key: "blogs", label: "Blogs", icon: FileEdit },
 ];
@@ -37,6 +52,7 @@ export default function Sidebar({
   onToggleCollapse,
 }) {
   const { logout } = useAuth();
+  const { unreadByCategory } = useNotifications();
 
   return (
     <>
@@ -104,6 +120,9 @@ export default function Sidebar({
             {navItems.map((item) => {
               const isActive = activeView === item.key;
               const Icon = item.icon;
+              const badgeCount = item.badgeKey
+                ? unreadByCategory?.[item.badgeKey] || 0
+                : 0;
 
               return (
                 <button
@@ -114,7 +133,7 @@ export default function Sidebar({
                   }}
                   title={collapsed ? item.label : undefined}
                   className={`
-                    w-full flex items-center gap-3 rounded-xl
+                    w-full flex items-center justify-between rounded-xl relative
                     transition-all duration-200 cursor-pointer
                     ${collapsed ? "px-3 py-3 justify-center" : "px-4 py-2.5"}
                     ${
@@ -124,15 +143,35 @@ export default function Sidebar({
                     }
                   `}
                 >
-                  <Icon
-                    className={`shrink-0 ${
-                      isActive ? "w-5 h-5" : "w-5 h-5"
-                    }`}
-                  />
-                  {!collapsed && (
-                    <span className="text-sm font-medium whitespace-nowrap">
-                      {item.label}
-                    </span>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Icon className="w-5 h-5 shrink-0" />
+                    {!collapsed && (
+                      <span className="text-sm font-medium whitespace-nowrap truncate">
+                        {item.label}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Badges */}
+                  {badgeCount > 0 && (
+                    <>
+                      {!collapsed ? (
+                        <span
+                          className={`
+                            px-2 py-0.5 rounded-full text-[11px] font-bold font-(family-name:--font-ibm-plex-mono)
+                            ${
+                              isActive
+                                ? "bg-primary text-dark"
+                                : "bg-primary/20 text-primary border border-primary/30"
+                            }
+                          `}
+                        >
+                          {badgeCount > 99 ? "99+" : badgeCount}
+                        </span>
+                      ) : (
+                        <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary animate-pulse" />
+                      )}
+                    </>
                   )}
                 </button>
               );
